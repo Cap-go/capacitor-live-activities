@@ -423,6 +423,129 @@ export interface AreActivitiesSupportedResult {
   reason?: string;
 }
 
+// ============================================================================
+// TIMER SEQUENCE TYPES (for workout/sport timers)
+// ============================================================================
+
+/**
+ * A single step in a timer sequence (e.g., workout interval)
+ *
+ * @since 1.0.0
+ */
+export interface TimerStep {
+  /** Duration of this step in seconds */
+  duration: number;
+  /** Title/instruction for this step (e.g., "Push-ups", "Rest") */
+  title: string;
+  /** Optional subtitle (e.g., "20 reps", "High intensity") */
+  subtitle?: string;
+  /** Color for this step (hex color, e.g., "#FF0000" for work, "#00FF00" for rest) */
+  color?: string;
+  /** Optional icon (SF Symbol name on iOS, material icon name on Android) */
+  icon?: string;
+  /** Optional sound to play when step starts */
+  sound?: 'beep' | 'bell' | 'whistle' | 'countdown' | 'none';
+}
+
+/**
+ * Options for starting a timer sequence
+ *
+ * @since 1.0.0
+ */
+export interface TimerSequenceOptions {
+  /** Array of steps in the sequence */
+  steps: TimerStep[];
+  /** Overall title for the sequence (e.g., "HIIT Workout", "Tabata") */
+  title?: string;
+  /** Whether to loop the sequence when complete */
+  loop?: boolean;
+  /** Number of times to loop (if loop is true, 0 means infinite) */
+  loopCount?: number;
+  /** Play sound on step change (default: true) */
+  soundEnabled?: boolean;
+  /** Vibrate on step change (default: true) */
+  vibrateEnabled?: boolean;
+  /** Play countdown beeps in last 3 seconds (default: true) */
+  countdownBeeps?: boolean;
+  /** Deep link URL when tapping the notification/activity */
+  tapUrl?: string;
+  /** Keep screen on during timer (Android only, default: false) */
+  keepScreenOn?: boolean;
+}
+
+/**
+ * Result of starting a timer sequence
+ *
+ * @since 1.0.0
+ */
+export interface TimerSequenceResult {
+  /** Unique sequence identifier */
+  sequenceId: string;
+}
+
+/**
+ * Current state of a timer sequence
+ *
+ * @since 1.0.0
+ */
+export interface TimerSequenceState {
+  /** Sequence ID */
+  sequenceId: string;
+  /** Whether the sequence is running */
+  isRunning: boolean;
+  /** Whether the sequence is paused */
+  isPaused: boolean;
+  /** Whether the sequence is complete */
+  isComplete: boolean;
+  /** Current step index (0-based) */
+  currentStepIndex: number;
+  /** Total number of steps */
+  totalSteps: number;
+  /** Current step info */
+  currentStep: TimerStep;
+  /** Remaining seconds in current step */
+  remainingSeconds: number;
+  /** Total remaining seconds for entire sequence */
+  totalRemainingSeconds: number;
+  /** Total elapsed seconds */
+  elapsedSeconds: number;
+  /** Current loop iteration (1-based, if looping) */
+  currentLoop: number;
+  /** Total loops (0 if infinite or not looping) */
+  totalLoops: number;
+}
+
+/**
+ * Event data for timer sequence events
+ *
+ * @since 1.0.0
+ */
+export interface TimerSequenceEvent {
+  /** Event type */
+  type: 'stepChange' | 'complete' | 'tick' | 'paused' | 'resumed' | 'stopped' | 'loopComplete';
+  /** Sequence ID */
+  sequenceId: string;
+  /** Current state when event occurred */
+  state: TimerSequenceState;
+}
+
+/**
+ * Callback type for timer sequence events
+ *
+ * @since 1.0.0
+ */
+export type TimerSequenceCallback = (event: TimerSequenceEvent) => void;
+
+/**
+ * Options for getting timer state
+ *
+ * @since 1.0.0
+ */
+export interface GetTimerStateOptions {
+  /** Sequence ID to get state for */
+  sequenceId: string;
+}
+
 /**
  * Capacitor Live Activities Plugin interface for managing iOS Live Activities.
  *
@@ -616,4 +739,149 @@ export interface CapgoLiveActivitiesPlugin {
    * ```
    */
   getPluginVersion(): Promise<{ version: string }>;
+
+  // ============================================================================
+  // TIMER SEQUENCE METHODS (for workout/sport timers)
+  // Works on iOS (Live Activity + Dynamic Island) and Android (Foreground Notification)
+  // ============================================================================
+
+  /**
+   * Start a timer sequence for workouts/sports.
+   * On iOS: Shows in Live Activity and Dynamic Island
+   * On Android: Shows as a foreground notification with timer
+   *
+   * @param options - Timer sequence configuration
+   * @returns Promise that resolves with the sequence ID
+   * @since 1.0.0
+   * @example
+   * ```typescript
+   * const { sequenceId } = await CapgoLiveActivities.startTimerSequence({
+   *   title: 'HIIT Workout',
+   *   steps: [
+   *     { duration: 30, title: 'Jumping Jacks', subtitle: 'Warm up', color: '#FF6B00', icon: 'figure.jumprope' },
+   *     { duration: 10, title: 'Rest', color: '#00C853', icon: 'pause.circle' },
+   *     { duration: 45, title: 'Burpees', subtitle: 'High intensity', color: '#FF0000', icon: 'flame.fill' },
+   *     { duration: 15, title: 'Rest', color: '#00C853', icon: 'pause.circle' },
+   *     { duration: 45, title: 'Mountain Climbers', color: '#FF0000', icon: 'figure.run' },
+   *     { duration: 15, title: 'Rest', color: '#00C853', icon: 'pause.circle' },
+   *   ],
+   *   loop: true,
+   *   loopCount: 3,
+   *   soundEnabled: true,
+   *   vibrateEnabled: true,
+   *   countdownBeeps: true,
+   *   tapUrl: 'myapp://workout/hiit'
+   * });
+   * ```
+   */
+  startTimerSequence(options: TimerSequenceOptions): Promise<TimerSequenceResult>;
+
+  /**
+   * Pause the timer sequence.
+   *
+   * @param options - Options containing the sequence ID
+   * @returns Promise that resolves when paused
+   * @since 1.0.0
+   * @example
+   * ```typescript
+   * await CapgoLiveActivities.pauseTimerSequence({ sequenceId: 'abc123' });
+   * ```
+   */
+  pauseTimerSequence(options: { sequenceId: string }): Promise<void>;
+
+  /**
+   * Resume a paused timer sequence.
+   *
+   * @param options - Options containing the sequence ID
+   * @returns Promise that resolves when resumed
+   * @since 1.0.0
+   * @example
+   * ```typescript
+   * await CapgoLiveActivities.resumeTimerSequence({ sequenceId: 'abc123' });
+   * ```
+   */
+  resumeTimerSequence(options: { sequenceId: string }): Promise<void>;
+
+  /**
+   * Stop and dismiss the timer sequence.
+   *
+   * @param options - Options containing the sequence ID
+   * @returns Promise that resolves when stopped
+   * @since 1.0.0
+   * @example
+   * ```typescript
+   * await CapgoLiveActivities.stopTimerSequence({ sequenceId: 'abc123' });
+   * ```
+   */
+  stopTimerSequence(options: { sequenceId: string }): Promise<void>;
+
+  /**
+   * Skip to the next step in the sequence.
+   *
+   * @param options - Options containing the sequence ID
+   * @returns Promise that resolves when skipped
+   * @since 1.0.0
+   * @example
+   * ```typescript
+   * await CapgoLiveActivities.skipTimerStep({ sequenceId: 'abc123' });
+   * ```
+   */
+  skipTimerStep(options: { sequenceId: string }): Promise<void>;
+
+  /**
+   * Go back to the previous step in the sequence.
+   *
+   * @param options - Options containing the sequence ID
+   * @returns Promise that resolves when moved back
+   * @since 1.0.0
+   * @example
+   * ```typescript
+   * await CapgoLiveActivities.previousTimerStep({ sequenceId: 'abc123' });
+   * ```
+   */
+  previousTimerStep(options: { sequenceId: string }): Promise<void>;
+
+  /**
+   * Get the current state of a timer sequence.
+   *
+   * @param options - Options containing the sequence ID
+   * @returns Promise that resolves with the current state
+   * @since 1.0.0
+   * @example
+   * ```typescript
+   * const state = await CapgoLiveActivities.getTimerState({ sequenceId: 'abc123' });
+   * console.log(`Step ${state.currentStepIndex + 1}/${state.totalSteps}: ${state.currentStep.title}`);
+   * console.log(`Time remaining: ${state.remainingSeconds}s`);
+   * ```
+   */
+  getTimerState(options: GetTimerStateOptions): Promise<TimerSequenceState>;
+
+  /**
+   * Add a listener for timer sequence events.
+   * Events include: stepChange, complete, tick, paused, resumed, stopped, loopComplete
+   *
+   * @param eventName - The event name to listen for
+   * @param callback - Callback function that receives the event
+   * @returns Promise that resolves with a handle to remove the listener
+   * @since 1.0.0
+   * @example
+   * ```typescript
+   * const handle = await CapgoLiveActivities.addListener('timerSequenceEvent', (event) => {
+   *   if (event.type === 'stepChange') {
+   *     console.log(`Now: ${event.state.currentStep.title}`);
+   *   } else if (event.type === 'complete') {
+   *     console.log('Workout complete!');
+   *   } else if (event.type === 'tick') {
+   *     console.log(`${event.state.remainingSeconds}s remaining`);
+   *   }
+   * });
+   *
+   * // Later, to remove the listener:
+   * handle.remove();
+   * ```
+   */
+  addListener(
+    eventName: 'timerSequenceEvent',
+    callback: TimerSequenceCallback,
+  ): Promise<{ remove: () => Promise<void> }>;
 }

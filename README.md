@@ -358,6 +358,14 @@ Flexible space between elements.
 * [`listImages()`](#listimages)
 * [`cleanupImages()`](#cleanupimages)
 * [`getPluginVersion()`](#getpluginversion)
+* [`startTimerSequence(...)`](#starttimersequence)
+* [`pauseTimerSequence(...)`](#pausetimersequence)
+* [`resumeTimerSequence(...)`](#resumetimersequence)
+* [`stopTimerSequence(...)`](#stoptimersequence)
+* [`skipTimerStep(...)`](#skiptimerstep)
+* [`previousTimerStep(...)`](#previoustimerstep)
+* [`getTimerState(...)`](#gettimerstate)
+* [`addListener('timerSequenceEvent', ...)`](#addlistenertimersequenceevent-)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
 
@@ -528,6 +536,152 @@ getPluginVersion() => Promise<{ version: string; }>
 Get the native Capacitor plugin version.
 
 **Returns:** <code>Promise&lt;{ version: string; }&gt;</code>
+
+**Since:** 1.0.0
+
+--------------------
+
+
+### startTimerSequence(...)
+
+```typescript
+startTimerSequence(options: TimerSequenceOptions) => Promise<TimerSequenceResult>
+```
+
+Start a timer sequence for workouts/sports.
+On iOS: Shows in Live Activity and Dynamic Island
+On Android: Shows as a foreground notification with timer
+
+| Param         | Type                                                                  | Description                    |
+| ------------- | --------------------------------------------------------------------- | ------------------------------ |
+| **`options`** | <code><a href="#timersequenceoptions">TimerSequenceOptions</a></code> | - Timer sequence configuration |
+
+**Returns:** <code>Promise&lt;<a href="#timersequenceresult">TimerSequenceResult</a>&gt;</code>
+
+**Since:** 1.0.0
+
+--------------------
+
+
+### pauseTimerSequence(...)
+
+```typescript
+pauseTimerSequence(options: { sequenceId: string; }) => Promise<void>
+```
+
+Pause the timer sequence.
+
+| Param         | Type                                 | Description                          |
+| ------------- | ------------------------------------ | ------------------------------------ |
+| **`options`** | <code>{ sequenceId: string; }</code> | - Options containing the sequence ID |
+
+**Since:** 1.0.0
+
+--------------------
+
+
+### resumeTimerSequence(...)
+
+```typescript
+resumeTimerSequence(options: { sequenceId: string; }) => Promise<void>
+```
+
+Resume a paused timer sequence.
+
+| Param         | Type                                 | Description                          |
+| ------------- | ------------------------------------ | ------------------------------------ |
+| **`options`** | <code>{ sequenceId: string; }</code> | - Options containing the sequence ID |
+
+**Since:** 1.0.0
+
+--------------------
+
+
+### stopTimerSequence(...)
+
+```typescript
+stopTimerSequence(options: { sequenceId: string; }) => Promise<void>
+```
+
+Stop and dismiss the timer sequence.
+
+| Param         | Type                                 | Description                          |
+| ------------- | ------------------------------------ | ------------------------------------ |
+| **`options`** | <code>{ sequenceId: string; }</code> | - Options containing the sequence ID |
+
+**Since:** 1.0.0
+
+--------------------
+
+
+### skipTimerStep(...)
+
+```typescript
+skipTimerStep(options: { sequenceId: string; }) => Promise<void>
+```
+
+Skip to the next step in the sequence.
+
+| Param         | Type                                 | Description                          |
+| ------------- | ------------------------------------ | ------------------------------------ |
+| **`options`** | <code>{ sequenceId: string; }</code> | - Options containing the sequence ID |
+
+**Since:** 1.0.0
+
+--------------------
+
+
+### previousTimerStep(...)
+
+```typescript
+previousTimerStep(options: { sequenceId: string; }) => Promise<void>
+```
+
+Go back to the previous step in the sequence.
+
+| Param         | Type                                 | Description                          |
+| ------------- | ------------------------------------ | ------------------------------------ |
+| **`options`** | <code>{ sequenceId: string; }</code> | - Options containing the sequence ID |
+
+**Since:** 1.0.0
+
+--------------------
+
+
+### getTimerState(...)
+
+```typescript
+getTimerState(options: GetTimerStateOptions) => Promise<TimerSequenceState>
+```
+
+Get the current state of a timer sequence.
+
+| Param         | Type                                                                  | Description                          |
+| ------------- | --------------------------------------------------------------------- | ------------------------------------ |
+| **`options`** | <code><a href="#gettimerstateoptions">GetTimerStateOptions</a></code> | - Options containing the sequence ID |
+
+**Returns:** <code>Promise&lt;<a href="#timersequencestate">TimerSequenceState</a>&gt;</code>
+
+**Since:** 1.0.0
+
+--------------------
+
+
+### addListener('timerSequenceEvent', ...)
+
+```typescript
+addListener(eventName: 'timerSequenceEvent', callback: TimerSequenceCallback) => Promise<{ remove: () => Promise<void>; }>
+```
+
+Add a listener for timer sequence events.
+Events include: stepChange, complete, tick, paused, resumed, stopped, loopComplete
+
+| Param           | Type                                                                    | Description                                 |
+| --------------- | ----------------------------------------------------------------------- | ------------------------------------------- |
+| **`eventName`** | <code>'timerSequenceEvent'</code>                                       | - The event name to listen for              |
+| **`callback`**  | <code><a href="#timersequencecallback">TimerSequenceCallback</a></code> | - Callback function that receives the event |
+
+**Returns:** <code>Promise&lt;{ remove: () =&gt; Promise&lt;void&gt;; }&gt;</code>
 
 **Since:** 1.0.0
 
@@ -828,6 +982,86 @@ Result of listing images
 | **`images`** | <code>string[]</code> | List of saved image names |
 
 
+#### TimerSequenceResult
+
+Result of starting a timer sequence
+
+| Prop             | Type                | Description                |
+| ---------------- | ------------------- | -------------------------- |
+| **`sequenceId`** | <code>string</code> | Unique sequence identifier |
+
+
+#### TimerSequenceOptions
+
+Options for starting a timer sequence
+
+| Prop                 | Type                     | Description                                                     |
+| -------------------- | ------------------------ | --------------------------------------------------------------- |
+| **`steps`**          | <code>TimerStep[]</code> | Array of steps in the sequence                                  |
+| **`title`**          | <code>string</code>      | Overall title for the sequence (e.g., "HIIT Workout", "Tabata") |
+| **`loop`**           | <code>boolean</code>     | Whether to loop the sequence when complete                      |
+| **`loopCount`**      | <code>number</code>      | Number of times to loop (if loop is true, 0 means infinite)     |
+| **`soundEnabled`**   | <code>boolean</code>     | Play sound on step change (default: true)                       |
+| **`vibrateEnabled`** | <code>boolean</code>     | Vibrate on step change (default: true)                          |
+| **`countdownBeeps`** | <code>boolean</code>     | Play countdown beeps in last 3 seconds (default: true)          |
+| **`tapUrl`**         | <code>string</code>      | Deep link URL when tapping the notification/activity            |
+| **`keepScreenOn`**   | <code>boolean</code>     | Keep screen on during timer (Android only, default: false)      |
+
+
+#### TimerStep
+
+A single step in a timer sequence (e.g., workout interval)
+
+| Prop           | Type                                                                | Description                                                                   |
+| -------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **`duration`** | <code>number</code>                                                 | Duration of this step in seconds                                              |
+| **`title`**    | <code>string</code>                                                 | Title/instruction for this step (e.g., "Push-ups", "Rest")                    |
+| **`subtitle`** | <code>string</code>                                                 | Optional subtitle (e.g., "20 reps", "High intensity")                         |
+| **`color`**    | <code>string</code>                                                 | Color for this step (hex color, e.g., "#FF0000" for work, "#00FF00" for rest) |
+| **`icon`**     | <code>string</code>                                                 | Optional icon (SF Symbol name on iOS, material icon name on Android)          |
+| **`sound`**    | <code>'beep' \| 'bell' \| 'whistle' \| 'countdown' \| 'none'</code> | Optional sound to play when step starts                                       |
+
+
+#### TimerSequenceState
+
+Current state of a timer sequence
+
+| Prop                        | Type                                            | Description                                  |
+| --------------------------- | ----------------------------------------------- | -------------------------------------------- |
+| **`sequenceId`**            | <code>string</code>                             | Sequence ID                                  |
+| **`isRunning`**             | <code>boolean</code>                            | Whether the sequence is running              |
+| **`isPaused`**              | <code>boolean</code>                            | Whether the sequence is paused               |
+| **`isComplete`**            | <code>boolean</code>                            | Whether the sequence is complete             |
+| **`currentStepIndex`**      | <code>number</code>                             | Current step index (0-based)                 |
+| **`totalSteps`**            | <code>number</code>                             | Total number of steps                        |
+| **`currentStep`**           | <code><a href="#timerstep">TimerStep</a></code> | Current step info                            |
+| **`remainingSeconds`**      | <code>number</code>                             | Remaining seconds in current step            |
+| **`totalRemainingSeconds`** | <code>number</code>                             | Total remaining seconds for entire sequence  |
+| **`elapsedSeconds`**        | <code>number</code>                             | Total elapsed seconds                        |
+| **`currentLoop`**           | <code>number</code>                             | Current loop iteration (1-based, if looping) |
+| **`totalLoops`**            | <code>number</code>                             | Total loops (0 if infinite or not looping)   |
+
+
+#### GetTimerStateOptions
+
+Options for getting timer state
+
+| Prop             | Type                | Description                  |
+| ---------------- | ------------------- | ---------------------------- |
+| **`sequenceId`** | <code>string</code> | Sequence ID to get state for |
+
+
+#### TimerSequenceEvent
+
+Event data for timer sequence events
+
+| Prop             | Type                                                                                                      | Description                       |
+| ---------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| **`type`**       | <code>'stepChange' \| 'complete' \| 'tick' \| 'paused' \| 'resumed' \| 'stopped' \| 'loopComplete'</code> | Event type                        |
+| **`sequenceId`** | <code>string</code>                                                                                       | Sequence ID                       |
+| **`state`**      | <code><a href="#timersequencestate">TimerSequenceState</a></code>                                         | Current state when event occurred |
+
+
 ### Type Aliases
 
 
@@ -857,6 +1091,13 @@ Color string type - supports hex colors and system colors
 Construct a type with a set of properties K of type T
 
 <code>{ [P in K]: T; }</code>
+
+
+#### TimerSequenceCallback
+
+Callback type for timer sequence events
+
+<code>(event: <a href="#timersequenceevent">TimerSequenceEvent</a>): void</code>
 
 </docgen-api>
 
