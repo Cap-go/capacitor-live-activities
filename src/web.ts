@@ -1,6 +1,5 @@
-import { WebPlugin } from '@capacitor/core';
-
 import type { PluginListenerHandle } from '@capacitor/core';
+import { WebPlugin } from '@capacitor/core';
 
 import type {
   CapgoLiveActivitiesPlugin,
@@ -23,12 +22,15 @@ import type {
 } from './definitions';
 
 export class CapgoLiveActivitiesWeb extends WebPlugin implements CapgoLiveActivitiesPlugin {
-  private timerSequences: Map<string, {
-    options: TimerSequenceOptions;
-    state: TimerSequenceState;
-    intervalId: number | null;
-    callbacks: TimerSequenceCallback[];
-  }> = new Map();
+  private timerSequences: Map<
+    string,
+    {
+      options: TimerSequenceOptions;
+      state: TimerSequenceState;
+      intervalId: number | null;
+      callbacks: TimerSequenceCallback[];
+    }
+  > = new Map();
 
   async areActivitiesSupported(): Promise<AreActivitiesSupportedResult> {
     return {
@@ -105,7 +107,7 @@ export class CapgoLiveActivitiesWeb extends WebPlugin implements CapgoLiveActivi
     this.startTimerInterval(sequenceId);
 
     console.log(`[Web] Timer sequence started: ${options.title ?? 'Untitled'}`);
-    console.log(`[Web] Steps: ${options.steps.map(s => `${s.title} (${s.duration}s)`).join(' -> ')}`);
+    console.log(`[Web] Steps: ${options.steps.map((s) => `${s.title} (${s.duration}s)`).join(' -> ')}`);
 
     return { sequenceId };
   }
@@ -141,7 +143,10 @@ export class CapgoLiveActivitiesWeb extends WebPlugin implements CapgoLiveActivi
         this.emitEvent(sequenceId, 'stepChange');
       } else {
         // End of sequence
-        if (sequence.options.loop && (sequence.options.loopCount === 0 || state.currentLoop < (sequence.options.loopCount ?? 0))) {
+        if (
+          sequence.options.loop &&
+          (sequence.options.loopCount === 0 || state.currentLoop < (sequence.options.loopCount ?? 0))
+        ) {
           // Loop back
           state.currentLoop++;
           state.currentStepIndex = 0;
@@ -164,7 +169,10 @@ export class CapgoLiveActivitiesWeb extends WebPlugin implements CapgoLiveActivi
     }
   }
 
-  private emitEvent(sequenceId: string, type: 'stepChange' | 'complete' | 'tick' | 'paused' | 'resumed' | 'stopped' | 'loopComplete'): void {
+  private emitEvent(
+    sequenceId: string,
+    type: 'stepChange' | 'complete' | 'tick' | 'paused' | 'resumed' | 'stopped' | 'loopComplete',
+  ): void {
     const sequence = this.timerSequences.get(sequenceId);
     if (!sequence) return;
 
@@ -174,7 +182,7 @@ export class CapgoLiveActivitiesWeb extends WebPlugin implements CapgoLiveActivi
       state: { ...sequence.state },
     };
 
-    sequence.callbacks.forEach(callback => callback(event));
+    sequence.callbacks.forEach((callback) => callback(event));
     this.notifyListeners('timerSequenceEvent', event);
   }
 
@@ -245,10 +253,7 @@ export class CapgoLiveActivitiesWeb extends WebPlugin implements CapgoLiveActivi
     return { ...sequence.state };
   }
 
-  async addListener(
-    eventName: 'timerSequenceEvent',
-    callback: TimerSequenceCallback,
-  ): Promise<PluginListenerHandle> {
+  async addListener(eventName: 'timerSequenceEvent', callback: TimerSequenceCallback): Promise<PluginListenerHandle> {
     // Use parent class listener mechanism
     return super.addListener(eventName, callback as any);
   }

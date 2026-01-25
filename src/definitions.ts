@@ -10,14 +10,7 @@ export type ColorString = string;
  *
  * @since 1.0.0
  */
-export type LayoutElementType =
-  | 'container'
-  | 'text'
-  | 'image'
-  | 'progress'
-  | 'timer'
-  | 'spacer'
-  | 'gauge';
+export type LayoutElementType = 'container' | 'text' | 'image' | 'progress' | 'timer' | 'spacer' | 'gauge';
 
 /**
  * Base layout element properties

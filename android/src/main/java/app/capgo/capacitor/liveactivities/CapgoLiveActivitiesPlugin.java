@@ -17,25 +17,21 @@ import android.os.Looper;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
-
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * Android implementation for Live Activities plugin.
@@ -53,6 +49,7 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     private static class TimerSequenceInfo {
+
         JSONObject options;
         JSONArray steps;
         int currentStepIndex;
@@ -76,11 +73,7 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Timer Notifications",
-                    NotificationManager.IMPORTANCE_HIGH
-            );
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Timer Notifications", NotificationManager.IMPORTANCE_HIGH);
             channel.setDescription("Workout timer notifications");
             channel.setShowBadge(true);
             channel.enableVibration(true);
@@ -223,7 +216,6 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
             JSObject ret = new JSObject();
             ret.put("sequenceId", sequenceId);
             call.resolve(ret);
-
         } catch (JSONException e) {
             call.reject("Error parsing timer options: " + e.getMessage());
         }
@@ -548,24 +540,24 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
             }
 
             NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext(), CHANNEL_ID)
-                    .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-                    .setContentTitle(title + " - " + progressText)
-                    .setContentText(contentText)
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setOngoing(true)
-                    .setOnlyAlertOnce(true)
-                    .setCategory(NotificationCompat.CATEGORY_ALARM)
-                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                .setContentTitle(title + " - " + progressText)
+                .setContentText(contentText)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
             // Add tap action
             String tapUrl = info.options.optString("tapUrl", null);
             if (tapUrl != null && !tapUrl.isEmpty()) {
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(tapUrl));
                 PendingIntent pendingIntent = PendingIntent.getActivity(
-                        getContext(),
-                        0,
-                        intent,
-                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                    getContext(),
+                    0,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
                 );
                 builder.setContentIntent(pendingIntent);
             }
@@ -576,7 +568,6 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
             builder.setProgress(100, progress, false);
 
             showNotification(builder.build());
-
         } catch (JSONException e) {
             // Handle error
         }
@@ -589,20 +580,22 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
         String title = info.options.optString("title", "Timer");
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext(), CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-                .setContentTitle(title + " Complete!")
-                .setContentText("Great job! Your workout is finished.")
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setAutoCancel(true)
-                .setCategory(NotificationCompat.CATEGORY_ALARM);
+            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            .setContentTitle(title + " Complete!")
+            .setContentText("Great job! Your workout is finished.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setCategory(NotificationCompat.CATEGORY_ALARM);
 
         showNotification(builder.build());
     }
 
     private void showNotification(Notification notification) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED) {
+            if (
+                ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED
+            ) {
                 return;
             }
         }
@@ -671,7 +664,7 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
 
     private void vibrateComplete() {
         try {
-            long[] pattern = {0, 300, 100, 300, 100, 300};
+            long[] pattern = { 0, 300, 100, 300, 100, 300 };
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 VibratorManager vibratorManager = (VibratorManager) getContext().getSystemService(Context.VIBRATOR_MANAGER_SERVICE);
                 Vibrator vibrator = vibratorManager.getDefaultVibrator();
