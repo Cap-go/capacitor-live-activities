@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Lock files (we use bun)
+package-lock.json
+yarn.lock
+
+# Example app build artifacts
+example-app/node_modules/
+example-app/dist/
+example-app/android/app/build/
+example-app/ios/App/Pods/
+
+# Xcode
+*.xcworkspace
+*.xcuserdata
+DerivedData/
+build/
+
+# Android
+*.iml
+.gradle/
+local.properties
+android/build/
+
+# Coverage
+coverage/
+.nyc_output/
