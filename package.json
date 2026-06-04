@@ -1,6 +1,6 @@
 {
   "name": "@capgo/capacitor-live-activities",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Manage iOS Live Activities from Capacitor",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
