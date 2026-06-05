@@ -8,6 +8,13 @@
 
 Manage iOS Live Activities from Capacitor with a powerful JSON-based layout system.
 
+## Demo
+
+<figure>
+  <img src="./assets/demo.webp" alt="Animated Live Activities demo showing lock screen and Dynamic Island updates from Capacitor" width="300" />
+  <figcaption>Live Activity and Dynamic Island updates</figcaption>
+</figure>
+
 ## Why Capacitor Live Activities?
 
 - **iOS 16.1+ Live Activities** - Full integration with Apple's Live Activities framework
