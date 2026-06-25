@@ -43,7 +43,7 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
 
     private static final String CHANNEL_ID = "timer_sequence_channel";
     private static final int NOTIFICATION_ID = 1001;
-    private final String pluginVersion = "1.1.3";
+    private final String pluginVersion = "1.1.4";
 
     private final Map<String, TimerSequenceInfo> timerSequences = new HashMap<>();
     private final Handler handler = new Handler(Looper.getMainLooper());
