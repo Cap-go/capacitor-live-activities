@@ -52,6 +52,9 @@ jobs:
       - name: Build
         id: build_code
         run: bun run verify:android
+      - name: Verify packed package in example app (Android)
+        shell: bash
+        run: bash ./.github/scripts/verify-packed-example.sh android
   build_ios:
     # Keep this job capped at 10 minutes; never raise it unless explicitly asked.
     timeout-minutes: 10
@@ -72,6 +75,9 @@ jobs:
       - name: Build
         id: build_code
         run: bun run verify:ios
+      - name: Verify packed package in example app (iOS)
+        shell: bash
+        run: bash ./.github/scripts/verify-packed-example.sh ios
   web:
     # Keep this job capped at 10 minutes; never raise it unless explicitly asked.
     timeout-minutes: 10
@@ -90,6 +96,9 @@ jobs:
         run: bun i
       - name: Check plugin wiring
         run: bun run check:wiring
+      - name: Verify packed package in example app (Web)
+        shell: bash
+        run: bash ./.github/scripts/verify-packed-example.sh web
       - name: Lint
         id: lint_code
         run: bun run lint
