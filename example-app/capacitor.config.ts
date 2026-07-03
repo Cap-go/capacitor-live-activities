@@ -4,7 +4,7 @@ import pkg from './package.json';
 
 const config: CapacitorConfig = {
   appId: 'app.capgo.live.activities',
-  appName: '@capgo/capacitor-live-activities',
+  appName: 'Capgo Live Activities',
   webDir: 'dist',
   plugins: {
     SplashScreen: {
