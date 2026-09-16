@@ -6,6 +6,9 @@ const config: CapacitorConfig = {
   appId: 'app.capgo.live.activities',
   appName: 'Capgo Live Activities',
   webDir: 'dist',
+  ios: {
+    minVersion: '16.0',
+  },
   plugins: {
     SplashScreen: {
       launchAutoHide: false,
