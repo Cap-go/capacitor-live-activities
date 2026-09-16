@@ -22,10 +22,13 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
+import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -38,8 +41,13 @@ import org.json.JSONObject;
  * Live Activities are an iOS-only feature, but timer sequences work on Android
  * using foreground notifications.
  */
-@CapacitorPlugin(name = "CapgoLiveActivities")
+@CapacitorPlugin(
+    name = "CapgoLiveActivities",
+    permissions = { @Permission(strings = { Manifest.permission.POST_NOTIFICATIONS }, alias = CapgoLiveActivitiesPlugin.NOTIFICATIONS) }
+)
 public class CapgoLiveActivitiesPlugin extends Plugin {
+
+    static final String NOTIFICATIONS = "notifications";
 
     private static final String CHANNEL_ID = "timer_sequence_channel";
     private static final int NOTIFICATION_ID = 1001;
@@ -154,6 +162,21 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
 
     @PluginMethod
     public void startTimerSequence(PluginCall call) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (getPermissionState(NOTIFICATIONS) != PermissionState.GRANTED) {
+                requestPermissionForAlias(NOTIFICATIONS, call, "postNotificationsPermissionCallback");
+                return;
+            }
+        }
+        startTimerSequenceImpl(call);
+    }
+
+    @PermissionCallback
+    private void postNotificationsPermissionCallback(PluginCall call) {
+        startTimerSequenceImpl(call);
+    }
+
+    private void startTimerSequenceImpl(PluginCall call) {
         try {
             JSONArray steps = call.getArray("steps");
             if (steps == null || steps.length() == 0) {
