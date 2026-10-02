@@ -1,4 +1,5 @@
 import ActivityKit
+import CoreFoundation
 import Foundation
 
 public final class CapgoLiveActivityManager {
@@ -108,7 +109,7 @@ public final class CapgoLiveActivityManager {
         data: [String: Any],
         staleDate: Double?,
         relevanceScore: Double?
-    ) throws {
+    ) async throws {
         guard #available(iOS 16.1, *) else {
             throw CapgoLiveActivityError.unsupported
         }
@@ -130,18 +131,16 @@ public final class CapgoLiveActivityManager {
         let relevance = relevanceScore.map { min(max($0, 0), 100) }
 
         let nextState = CapgoLiveActivityAttributes.ContentState(data: contentData)
-        Task {
-            if #available(iOS 16.2, *) {
-                let content: ActivityContent<CapgoLiveActivityAttributes.ContentState>
-                if let relevance {
-                    content = ActivityContent(state: nextState, staleDate: stale, relevanceScore: relevance)
-                } else {
-                    content = ActivityContent(state: nextState, staleDate: stale)
-                }
-                await activity.update(content)
+        if #available(iOS 16.2, *) {
+            let content: ActivityContent<CapgoLiveActivityAttributes.ContentState>
+            if let relevance {
+                content = ActivityContent(state: nextState, staleDate: stale, relevanceScore: relevance)
             } else {
-                await activity.update(using: nextState)
+                content = ActivityContent(state: nextState, staleDate: stale)
             }
+            await activity.update(content)
+        } else {
+            await activity.update(using: nextState)
         }
     }
 
@@ -150,7 +149,7 @@ public final class CapgoLiveActivityManager {
         data: [String: Any]?,
         dismissalPolicy: String?,
         dismissAfter: Double?
-    ) throws {
+    ) async throws {
         guard #available(iOS 16.1, *) else {
             throw CapgoLiveActivityError.unsupported
         }
@@ -168,13 +167,11 @@ public final class CapgoLiveActivityManager {
         let policy = dismissalPolicyFrom(dismissalPolicy, dismissAfter: dismissAfter)
 
         let finalState = CapgoLiveActivityAttributes.ContentState(data: finalData)
-        Task {
-            if #available(iOS 16.2, *) {
-                let content = ActivityContent(state: finalState, staleDate: nil)
-                await activity.end(content, dismissalPolicy: policy)
-            } else {
-                await activity.end(using: finalState, dismissalPolicy: policy)
-            }
+        if #available(iOS 16.2, *) {
+            let content = ActivityContent(state: finalState, staleDate: nil)
+            await activity.end(content, dismissalPolicy: policy)
+        } else {
+            await activity.end(using: finalState, dismissalPolicy: policy)
         }
 
         lock.lock()
@@ -221,6 +218,8 @@ public final class CapgoLiveActivityManager {
         switch value {
         case let value as String:
             return .string(value)
+        case let value as NSNumber where CFGetTypeID(value) == CFBooleanGetTypeID():
+            return .bool(value.boolValue)
         case let value as Int:
             return .int(value)
         case let value as Double:

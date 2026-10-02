@@ -1,7 +1,9 @@
 import Foundation
 import Capacitor
 import ActivityKit
+#if canImport(CapgoLiveActivitiesShared)
 import CapgoLiveActivitiesShared
+#endif
 
 /**
  * Capacitor plugin for managing iOS Live Activities.
@@ -105,18 +107,20 @@ public class CapgoLiveActivitiesPlugin: CAPPlugin, CAPBridgedPlugin {
         let staleDate = call.getDouble("staleDate")
         let relevanceScore = call.getDouble("relevanceScore")
 
-        do {
-            try CapgoLiveActivityManager.shared.update(
-                activityId: activityId,
-                data: data,
-                staleDate: staleDate,
-                relevanceScore: relevanceScore
-            )
-            call.resolve()
-        } catch CapgoLiveActivityError.notFound {
-            call.reject("Activity not found")
-        } catch {
-            call.reject("Failed to update Live Activity: \(error.localizedDescription)")
+        Task {
+            do {
+                try await CapgoLiveActivityManager.shared.update(
+                    activityId: activityId,
+                    data: data,
+                    staleDate: staleDate,
+                    relevanceScore: relevanceScore
+                )
+                call.resolve()
+            } catch CapgoLiveActivityError.notFound {
+                call.reject("Activity not found")
+            } catch {
+                call.reject("Failed to update Live Activity: \(error.localizedDescription)")
+            }
         }
     }
 
@@ -135,18 +139,20 @@ public class CapgoLiveActivitiesPlugin: CAPPlugin, CAPBridgedPlugin {
         let dismissAfter = call.getDouble("dismissAfter")
         let finalData = call.getObject("data")
 
-        do {
-            try CapgoLiveActivityManager.shared.end(
-                activityId: activityId,
-                data: finalData,
-                dismissalPolicy: dismissalPolicy,
-                dismissAfter: dismissAfter
-            )
-            call.resolve()
-        } catch CapgoLiveActivityError.notFound {
-            call.reject("Activity not found")
-        } catch {
-            call.reject("Failed to end Live Activity: \(error.localizedDescription)")
+        Task {
+            do {
+                try await CapgoLiveActivityManager.shared.end(
+                    activityId: activityId,
+                    data: finalData,
+                    dismissalPolicy: dismissalPolicy,
+                    dismissAfter: dismissAfter
+                )
+                call.resolve()
+            } catch CapgoLiveActivityError.notFound {
+                call.reject("Activity not found")
+            } catch {
+                call.reject("Failed to end Live Activity: \(error.localizedDescription)")
+            }
         }
     }
 

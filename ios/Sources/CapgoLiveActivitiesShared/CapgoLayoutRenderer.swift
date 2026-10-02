@@ -145,7 +145,10 @@ public enum CapgoLayoutRenderer {
                     .frame(width: width, height: height)
             }
         case "saved":
-            if let appGroupId,
+            if value.contains("/") || value.contains("..") {
+                Image(systemName: "photo")
+                    .frame(width: width, height: height)
+            } else if let appGroupId,
                let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupId)?
                 .appendingPathComponent("LiveActivityImages/\(value).jpg"),
                let uiImage = UIImage(contentsOfFile: url.path) {
