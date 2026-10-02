@@ -47,11 +47,12 @@ public final class CapgoLiveActivityManager {
 
         let activity: Activity<CapgoLiveActivityAttributes>
         if #available(iOS 16.2, *) {
-            let content = ActivityContent(
-                state: contentState,
-                staleDate: stale,
-                relevanceScore: relevance
-            )
+            let content: ActivityContent<CapgoLiveActivityAttributes.ContentState>
+            if let relevance {
+                content = ActivityContent(state: contentState, staleDate: stale, relevanceScore: relevance)
+            } else {
+                content = ActivityContent(state: contentState, staleDate: stale)
+            }
             do {
                 activity = try Activity.request(attributes: attributes, content: content, pushType: .token)
             } catch {
@@ -131,11 +132,12 @@ public final class CapgoLiveActivityManager {
         let nextState = CapgoLiveActivityAttributes.ContentState(data: contentData)
         Task {
             if #available(iOS 16.2, *) {
-                let content = ActivityContent(
-                    state: nextState,
-                    staleDate: stale,
-                    relevanceScore: relevance
-                )
+                let content: ActivityContent<CapgoLiveActivityAttributes.ContentState>
+                if let relevance {
+                    content = ActivityContent(state: nextState, staleDate: stale, relevanceScore: relevance)
+                } else {
+                    content = ActivityContent(state: nextState, staleDate: stale)
+                }
                 await activity.update(content)
             } else {
                 await activity.update(using: nextState)
