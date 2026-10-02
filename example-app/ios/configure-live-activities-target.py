@@ -16,6 +16,13 @@ def uid() -> str:
 
 def main() -> None:
     text = PBXPROJ.read_text()
+    capapp_pkg = PBXPROJ.parent / "CapApp-SPM" / "Package.swift"
+    if capapp_pkg.exists():
+        capapp_text = capapp_pkg.read_text()
+        capapp_text = capapp_text.replace('platforms: [.iOS(.v15)]', 'platforms: [.iOS("16.1")]')
+        capapp_text = capapp_text.replace('platforms: [.iOS(.v16)]', 'platforms: [.iOS("16.1")]')
+        capapp_pkg.write_text(capapp_text)
+
     if "LiveActivitiesExtension" in text:
         print("LiveActivities extension already configured")
         return
