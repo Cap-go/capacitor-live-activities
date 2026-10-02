@@ -138,21 +138,16 @@ public final class CapgoLiveActivityManager {
         if #available(iOS 16.2, *) {
             let alert = alertConfiguration(from: alertConfig)
             let content: ActivityContent<CapgoLiveActivityAttributes.ContentState>
-            if let relevance, let alert {
-                content = ActivityContent(
-                    state: nextState,
-                    staleDate: stale,
-                    relevanceScore: relevance,
-                    alertConfiguration: alert
-                )
-            } else if let relevance {
+            if let relevance {
                 content = ActivityContent(state: nextState, staleDate: stale, relevanceScore: relevance)
-            } else if let alert {
-                content = ActivityContent(state: nextState, staleDate: stale, alertConfiguration: alert)
             } else {
                 content = ActivityContent(state: nextState, staleDate: stale)
             }
-            await activity.update(content)
+            if let alert {
+                await activity.update(content, alertConfiguration: alert)
+            } else {
+                await activity.update(content)
+            }
         } else {
             await activity.update(using: nextState)
         }
@@ -267,7 +262,8 @@ public final class CapgoLiveActivityManager {
         for activity in Activity<CapgoLiveActivityAttributes>.activities {
             lock.lock()
             let activityId = activity.attributes.activityId
-            let data = dictionary(from: activity.content.state.data)
+            let stateData = currentContentData(from: activity)
+            let data = dictionary(from: stateData)
             let state = stateString(activity.activityState)
             if var existing = activities[activityId] {
                 existing.activity = activity
@@ -300,7 +296,21 @@ public final class CapgoLiveActivityManager {
               let body = config["body"] as? String else {
             return nil
         }
-        return AlertConfiguration(title: title, body: body, sound: .default)
+        return AlertConfiguration(
+            title: LocalizedStringResource(stringLiteral: title),
+            body: LocalizedStringResource(stringLiteral: body),
+            sound: .default
+        )
+    }
+
+    @available(iOS 16.1, *)
+    private func currentContentData(
+        from activity: Activity<CapgoLiveActivityAttributes>
+    ) -> [String: CapgoJSONValue] {
+        if #available(iOS 16.2, *) {
+            return activity.content.state.data
+        }
+        return activity.contentState.data
     }
 
     private func stateString(_ state: ActivityState) -> String {
