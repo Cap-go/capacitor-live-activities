@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "CapgoCapacitorLiveActivities",
-    platforms: [.iOS(.v16)],
+    platforms: [.iOS("16.1")],
     products: [
         .library(
             name: "CapgoCapacitorLiveActivities",

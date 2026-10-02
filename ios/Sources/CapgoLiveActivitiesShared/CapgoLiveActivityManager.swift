@@ -11,7 +11,6 @@ public final class CapgoLiveActivityManager {
     }
 
     private var activities: [String: StoredActivity] = [:]
-    private let encoder = JSONEncoder()
     private let lock = NSLock()
 
     private init() {}
@@ -46,12 +45,32 @@ public final class CapgoLiveActivityManager {
         let stale: Date? = staleDate.map { Date(timeIntervalSince1970: $0 / 1000) }
         let relevance = relevanceScore.map { Int(min(max($0, 0), 100)) }
 
-        let content = activityContent(state: contentState, staleDate: stale, relevanceScore: relevance)
         let activity: Activity<CapgoLiveActivityAttributes>
-        do {
-            activity = try Activity.request(attributes: attributes, content: content, pushType: .token)
-        } catch {
-            activity = try Activity.request(attributes: attributes, content: content, pushType: nil)
+        if #available(iOS 16.2, *) {
+            let content = ActivityContent(
+                state: contentState,
+                staleDate: stale,
+                relevanceScore: relevance
+            )
+            do {
+                activity = try Activity.request(attributes: attributes, content: content, pushType: .token)
+            } catch {
+                activity = try Activity.request(attributes: attributes, content: content, pushType: nil)
+            }
+        } else {
+            do {
+                activity = try Activity.request(
+                    attributes: attributes,
+                    contentState: contentState,
+                    pushType: .token
+                )
+            } catch {
+                activity = try Activity.request(
+                    attributes: attributes,
+                    contentState: contentState,
+                    pushType: nil
+                )
+            }
         }
 
         let config: [String: Any] = [
@@ -109,9 +128,18 @@ public final class CapgoLiveActivityManager {
         let stale: Date? = staleDate.map { Date(timeIntervalSince1970: $0 / 1000) }
         let relevance = relevanceScore.map { Int(min(max($0, 0), 100)) }
 
-        let content = activityContent(state: .init(data: contentData), staleDate: stale, relevanceScore: relevance)
+        let nextState = CapgoLiveActivityAttributes.ContentState(data: contentData)
         Task {
-            await activity.update(content)
+            if #available(iOS 16.2, *) {
+                let content = ActivityContent(
+                    state: nextState,
+                    staleDate: stale,
+                    relevanceScore: relevance
+                )
+                await activity.update(content)
+            } else {
+                await activity.update(using: nextState)
+            }
         }
     }
 
@@ -137,9 +165,14 @@ public final class CapgoLiveActivityManager {
         let finalData = capgoValues(from: data ?? fallbackData)
         let policy = dismissalPolicyFrom(dismissalPolicy, dismissAfter: dismissAfter)
 
-        let content = activityContent(state: .init(data: finalData), staleDate: nil, relevanceScore: nil)
+        let finalState = CapgoLiveActivityAttributes.ContentState(data: finalData)
         Task {
-            await activity.end(content, dismissalPolicy: policy)
+            if #available(iOS 16.2, *) {
+                let content = ActivityContent(state: finalState, staleDate: nil)
+                await activity.end(content, dismissalPolicy: policy)
+            } else {
+                await activity.end(using: finalState, dismissalPolicy: policy)
+            }
         }
 
         lock.lock()
@@ -203,18 +236,6 @@ public final class CapgoLiveActivityManager {
         default:
             return .null
         }
-    }
-
-    @available(iOS 16.1, *)
-    private func activityContent(
-        state: CapgoLiveActivityAttributes.ContentState,
-        staleDate: Date?,
-        relevanceScore: Int?
-    ) -> ActivityContent<CapgoLiveActivityAttributes.ContentState> {
-        if #available(iOS 16.2, *), let relevanceScore {
-            return ActivityContent(state: state, staleDate: staleDate, relevanceScore: relevanceScore)
-        }
-        return ActivityContent(state: state, staleDate: staleDate)
     }
 
     @available(iOS 16.1, *)
