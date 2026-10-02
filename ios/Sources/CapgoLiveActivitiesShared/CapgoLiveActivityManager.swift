@@ -43,7 +43,7 @@ public final class CapgoLiveActivityManager {
         let contentState = CapgoLiveActivityAttributes.ContentState(data: contentData)
 
         let stale: Date? = staleDate.map { Date(timeIntervalSince1970: $0 / 1000) }
-        let relevance = relevanceScore.map { Int(min(max($0, 0), 100)) }
+        let relevance = relevanceScore.map { min(max($0, 0), 100) }
 
         let activity: Activity<CapgoLiveActivityAttributes>
         if #available(iOS 16.2, *) {
@@ -126,7 +126,7 @@ public final class CapgoLiveActivityManager {
 
         let contentData = capgoValues(from: data)
         let stale: Date? = staleDate.map { Date(timeIntervalSince1970: $0 / 1000) }
-        let relevance = relevanceScore.map { Int(min(max($0, 0), 100)) }
+        let relevance = relevanceScore.map { min(max($0, 0), 100) }
 
         let nextState = CapgoLiveActivityAttributes.ContentState(data: contentData)
         Task {
