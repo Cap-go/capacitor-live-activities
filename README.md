@@ -958,12 +958,13 @@ Result of getAllActivities
 
 Activity info returned from getAllActivities
 
-| Prop             | Type                                                             | Description            |
-| ---------------- | ---------------------------------------------------------------- | ---------------------- |
-| **`activityId`** | <code>string</code>                                              | Activity ID            |
-| **`state`**      | <code>'active' \| 'ended' \| 'dismissed' \| 'stale'</code>       | Current activity state |
-| **`startDate`**  | <code>number</code>                                              | Activity start date    |
-| **`data`**       | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code> | Current data           |
+| Prop             | Type                                                             | Description                                                                                                                                              | Since |
+| ---------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| **`activityId`** | <code>string</code>                                              | Activity ID                                                                                                                                              |       |
+| **`state`**      | <code>'active' \| 'ended' \| 'dismissed' \| 'stale'</code>       | Current activity state                                                                                                                                   |       |
+| **`startDate`**  | <code>number</code>                                              | Activity start date                                                                                                                                      |       |
+| **`data`**       | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code> | Current data                                                                                                                                             |       |
+| **`pushToken`**  | <code>string</code>                                              | ActivityKit push token (hex), when push updates are enabled for the activity. Use this token with APNs liveactivity push type for server-driven updates. | 1.2.0 |
 
 
 #### SaveImageResult
