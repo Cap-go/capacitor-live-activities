@@ -44,7 +44,7 @@ public final class CapgoLiveActivityManager {
         let contentState = CapgoLiveActivityAttributes.ContentState(data: contentData)
 
         let stale: Date? = staleDate.map { Date(timeIntervalSince1970: $0 / 1000) }
-        let relevance = relevanceScore.map { min(max($0, 0), 100) }
+        let relevance = normalizedRelevance(relevanceScore)
 
         let activity: Activity<CapgoLiveActivityAttributes>
         if #available(iOS 16.2, *) {
@@ -108,18 +108,22 @@ public final class CapgoLiveActivityManager {
         activityId: String,
         data: [String: Any],
         staleDate: Double?,
-        relevanceScore: Double?
+        relevanceScore: Double?,
+        alertConfig: [String: Any]?
     ) async throws {
         guard #available(iOS 16.1, *) else {
             throw CapgoLiveActivityError.unsupported
         }
 
+        hydrateFromActivityKit()
         lock.lock()
         guard var stored = activities[activityId],
               let activity = stored.activity as? Activity<CapgoLiveActivityAttributes> else {
             lock.unlock()
             throw CapgoLiveActivityError.notFound
         }
+        let effectiveStaleDate = staleDate ?? stored.config["staleDate"] as? Double
+        let effectiveRelevance = relevanceScore ?? stored.config["relevanceScore"] as? Double
         stored.config["data"] = data
         if let staleDate { stored.config["staleDate"] = staleDate }
         if let relevanceScore { stored.config["relevanceScore"] = relevanceScore }
@@ -127,14 +131,24 @@ public final class CapgoLiveActivityManager {
         lock.unlock()
 
         let contentData = capgoValues(from: data)
-        let stale: Date? = staleDate.map { Date(timeIntervalSince1970: $0 / 1000) }
-        let relevance = relevanceScore.map { min(max($0, 0), 100) }
+        let stale: Date? = effectiveStaleDate.map { Date(timeIntervalSince1970: $0 / 1000) }
+        let relevance = normalizedRelevance(effectiveRelevance)
 
         let nextState = CapgoLiveActivityAttributes.ContentState(data: contentData)
         if #available(iOS 16.2, *) {
+            let alert = alertConfiguration(from: alertConfig)
             let content: ActivityContent<CapgoLiveActivityAttributes.ContentState>
-            if let relevance {
+            if let relevance, let alert {
+                content = ActivityContent(
+                    state: nextState,
+                    staleDate: stale,
+                    relevanceScore: relevance,
+                    alertConfiguration: alert
+                )
+            } else if let relevance {
                 content = ActivityContent(state: nextState, staleDate: stale, relevanceScore: relevance)
+            } else if let alert {
+                content = ActivityContent(state: nextState, staleDate: stale, alertConfiguration: alert)
             } else {
                 content = ActivityContent(state: nextState, staleDate: stale)
             }
@@ -154,6 +168,7 @@ public final class CapgoLiveActivityManager {
             throw CapgoLiveActivityError.unsupported
         }
 
+        hydrateFromActivityKit()
         lock.lock()
         guard let stored = activities[activityId],
               let activity = stored.activity as? Activity<CapgoLiveActivityAttributes> else {
@@ -185,16 +200,24 @@ public final class CapgoLiveActivityManager {
     }
 
     public func allActivities() -> [[String: Any]] {
+        hydrateFromActivityKit()
         lock.lock()
         defer { lock.unlock() }
         return activities.map { activityId, stored in
-            [
+            var state = stored.config["state"] as? String ?? "active"
+            if let activity = stored.activity as? Activity<CapgoLiveActivityAttributes> {
+                state = stateString(activity.activityState)
+            }
+            var payload: [String: Any] = [
                 "activityId": activityId,
-                "state": stored.config["state"] as? String ?? "active",
+                "state": state,
                 "startDate": stored.config["startDate"] ?? 0,
-                "data": stored.config["data"] ?? [:],
-                "pushToken": stored.pushToken as Any
+                "data": stored.config["data"] ?? [:]
             ]
+            if let pushToken = stored.pushToken, !pushToken.isEmpty {
+                payload["pushToken"] = pushToken
+            }
+            return payload
         }
     }
 
@@ -236,6 +259,89 @@ public final class CapgoLiveActivityManager {
             return .array(value.map { capgoValue(from: $0) })
         default:
             return .null
+        }
+    }
+
+    @available(iOS 16.1, *)
+    private func hydrateFromActivityKit() {
+        for activity in Activity<CapgoLiveActivityAttributes>.activities {
+            lock.lock()
+            let activityId = activity.attributes.activityId
+            let data = dictionary(from: activity.content.state.data)
+            let state = stateString(activity.activityState)
+            if var existing = activities[activityId] {
+                existing.activity = activity
+                existing.config["state"] = state
+                existing.config["data"] = data
+                activities[activityId] = existing
+            } else {
+                activities[activityId] = StoredActivity(
+                    config: [
+                        "state": state,
+                        "startDate": 0,
+                        "data": data
+                    ],
+                    pushToken: nil,
+                    activity: activity
+                )
+            }
+            lock.unlock()
+        }
+    }
+
+    private func normalizedRelevance(_ score: Double?) -> Double? {
+        score.map { min(max($0 / 100.0, 0), 1) }
+    }
+
+    @available(iOS 16.2, *)
+    private func alertConfiguration(from config: [String: Any]?) -> AlertConfiguration? {
+        guard let config,
+              let title = config["title"] as? String,
+              let body = config["body"] as? String else {
+            return nil
+        }
+        return AlertConfiguration(title: title, body: body, sound: .default)
+    }
+
+    private func stateString(_ state: ActivityState) -> String {
+        switch state {
+        case .active:
+            return "active"
+        case .ended:
+            return "ended"
+        case .dismissed:
+            return "dismissed"
+        case .stale:
+            return "stale"
+        @unknown default:
+            return "active"
+        }
+    }
+
+    private func dictionary(from values: [String: CapgoJSONValue]) -> [String: Any] {
+        var result: [String: Any] = [:]
+        for (key, value) in values {
+            result[key] = anyValue(from: value)
+        }
+        return result
+    }
+
+    private func anyValue(from value: CapgoJSONValue) -> Any {
+        switch value {
+        case .string(let string):
+            return string
+        case .int(let int):
+            return int
+        case .double(let double):
+            return double
+        case .bool(let bool):
+            return bool
+        case .object(let object):
+            return dictionary(from: object)
+        case .array(let array):
+            return array.map { anyValue(from: $0) }
+        case .null:
+            return NSNull()
         }
     }
 

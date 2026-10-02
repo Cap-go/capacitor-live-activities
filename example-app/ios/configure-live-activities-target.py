@@ -16,7 +16,7 @@ def uid() -> str:
 
 def main() -> None:
     text = PBXPROJ.read_text()
-    capapp_pkg = PBXPROJ.parent / "CapApp-SPM" / "Package.swift"
+    capapp_pkg = PBXPROJ.parent.parent / "CapApp-SPM" / "Package.swift"
     if capapp_pkg.exists():
         capapp_text = capapp_pkg.read_text()
         capapp_text = capapp_text.replace('platforms: [.iOS(.v15)]', 'platforms: [.iOS("16.1")]')

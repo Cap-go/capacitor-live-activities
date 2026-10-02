@@ -58,8 +58,7 @@ case "$platform" in
     # Live Activities require iOS 16.1+; Capacitor's default example app targets 15.0.
     capapp_pkg="$test_app/ios/App/CapApp-SPM/Package.swift"
     if [ -f "$capapp_pkg" ]; then
-      sed -i.bak 's/platforms: \[.iOS(\.v15)\]/platforms: [.iOS("16.1")]/' "$capapp_pkg"
-      sed -i.bak 's/platforms: \[.iOS(\.v16)\]/platforms: [.iOS("16.1")]/' "$capapp_pkg"
+      sed -i.bak -E 's/\.iOS\(\.v1[56]\)/.iOS("16.1")/g' "$capapp_pkg"
       rm -f "$capapp_pkg.bak"
     fi
     pbxproj="$test_app/ios/App/App.xcodeproj/project.pbxproj"

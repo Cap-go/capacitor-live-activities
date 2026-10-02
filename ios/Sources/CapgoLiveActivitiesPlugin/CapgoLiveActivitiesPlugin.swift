@@ -106,6 +106,7 @@ public class CapgoLiveActivitiesPlugin: CAPPlugin, CAPBridgedPlugin {
 
         let staleDate = call.getDouble("staleDate")
         let relevanceScore = call.getDouble("relevanceScore")
+        let alertConfiguration = call.getObject("alertConfiguration")
 
         Task {
             do {
@@ -113,7 +114,8 @@ public class CapgoLiveActivitiesPlugin: CAPPlugin, CAPBridgedPlugin {
                     activityId: activityId,
                     data: data,
                     staleDate: staleDate,
-                    relevanceScore: relevanceScore
+                    relevanceScore: relevanceScore,
+                    alertConfig: alertConfiguration
                 )
                 call.resolve()
             } catch CapgoLiveActivityError.notFound {
