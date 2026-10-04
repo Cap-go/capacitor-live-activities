@@ -12,7 +12,12 @@ public final class CapgoLiveActivityManager {
     }
 
     private var activities: [String: StoredActivity] = [:]
+    private var observedPushTokenIds: Set<String> = []
     private let lock = NSLock()
+
+    /// Persisted per-activity metadata (startDate, staleDate, relevanceScore) so records recovered
+    /// from ActivityKit after an app restart keep the values reported at start or last update.
+    private let metadataDefaultsKey = "CapgoLiveActivities.metadata"
 
     private init() {}
 
@@ -75,33 +80,77 @@ public final class CapgoLiveActivityManager {
             }
         }
 
-        let config: [String: Any] = [
+        let startDate = Date().timeIntervalSince1970 * 1000
+        var config: [String: Any] = [
             "layout": layout,
             "dynamicIslandLayout": dynamicIslandLayout,
             "behavior": behavior ?? [:],
             "data": data,
-            "staleDate": staleDate as Any,
-            "relevanceScore": relevanceScore as Any,
-            "startDate": Date().timeIntervalSince1970 * 1000,
+            "startDate": startDate,
             "state": "active",
             "appGroupId": appGroupId as Any
         ]
+        if let staleDate { config["staleDate"] = staleDate }
+        if let relevanceScore { config["relevanceScore"] = relevanceScore }
 
         lock.lock()
         activities[activityId] = StoredActivity(config: config, pushToken: nil, activity: activity)
         lock.unlock()
+        saveMetadata(activityId: activityId, startDate: startDate, staleDate: staleDate, relevanceScore: relevanceScore)
 
-        Task {
+        observePushTokens(for: activity, activityId: activityId)
+    }
+
+    @available(iOS 16.1, *)
+    private func observePushTokens(for activity: Activity<CapgoLiveActivityAttributes>, activityId: String) {
+        lock.lock()
+        if observedPushTokenIds.contains(activityId) {
+            lock.unlock()
+            return
+        }
+        observedPushTokenIds.insert(activityId)
+        if let current = activity.pushToken, var stored = activities[activityId], stored.pushToken == nil {
+            stored.pushToken = hexString(current)
+            activities[activityId] = stored
+        }
+        lock.unlock()
+
+        Task { [weak self] in
             for await tokenData in activity.pushTokenUpdates {
-                let token = tokenData.map { String(format: "%02x", $0) }.joined()
-                lock.lock()
-                if var stored = activities[activityId] {
+                guard let self else { return }
+                let token = self.hexString(tokenData)
+                self.lock.lock()
+                if var stored = self.activities[activityId] {
                     stored.pushToken = token
-                    activities[activityId] = stored
+                    self.activities[activityId] = stored
                 }
-                lock.unlock()
+                self.lock.unlock()
             }
         }
+    }
+
+    private func hexString(_ data: Data) -> String {
+        data.map { String(format: "%02x", $0) }.joined()
+    }
+
+    private func loadAllMetadata() -> [String: [String: Double]] {
+        UserDefaults.standard.dictionary(forKey: metadataDefaultsKey) as? [String: [String: Double]] ?? [:]
+    }
+
+    private func saveMetadata(activityId: String, startDate: Double? = nil, staleDate: Double?, relevanceScore: Double?) {
+        var all = loadAllMetadata()
+        var entry = all[activityId] ?? [:]
+        if let startDate { entry["startDate"] = startDate }
+        if let staleDate { entry["staleDate"] = staleDate }
+        if let relevanceScore { entry["relevanceScore"] = relevanceScore }
+        all[activityId] = entry
+        UserDefaults.standard.set(all, forKey: metadataDefaultsKey)
+    }
+
+    private func removeMetadata(activityId: String) {
+        var all = loadAllMetadata()
+        guard all.removeValue(forKey: activityId) != nil else { return }
+        UserDefaults.standard.set(all, forKey: metadataDefaultsKey)
     }
 
     public func update(
@@ -129,14 +178,17 @@ public final class CapgoLiveActivityManager {
         if let relevanceScore { stored.config["relevanceScore"] = relevanceScore }
         activities[activityId] = stored
         lock.unlock()
+        if staleDate != nil || relevanceScore != nil {
+            saveMetadata(activityId: activityId, staleDate: staleDate, relevanceScore: relevanceScore)
+        }
 
         let contentData = capgoValues(from: data)
         let stale: Date? = effectiveStaleDate.map { Date(timeIntervalSince1970: $0 / 1000) }
         let relevance = normalizedRelevance(effectiveRelevance)
 
         let nextState = CapgoLiveActivityAttributes.ContentState(data: contentData)
+        let alert = alertConfiguration(from: alertConfig)
         if #available(iOS 16.2, *) {
-            let alert = alertConfiguration(from: alertConfig)
             let content: ActivityContent<CapgoLiveActivityAttributes.ContentState>
             if let relevance {
                 content = ActivityContent(state: nextState, staleDate: stale, relevanceScore: relevance)
@@ -149,7 +201,8 @@ public final class CapgoLiveActivityManager {
                 await activity.update(content)
             }
         } else {
-            await activity.update(using: nextState)
+            // iOS 16.1 only offers the contentState-based overload, which also takes the alert.
+            await activity.update(using: nextState, alertConfiguration: alert)
         }
     }
 
@@ -192,6 +245,7 @@ public final class CapgoLiveActivityManager {
             activities[activityId] = updated
         }
         lock.unlock()
+        removeMetadata(activityId: activityId)
     }
 
     public func allActivities() -> [[String: Any]] {
@@ -259,6 +313,7 @@ public final class CapgoLiveActivityManager {
 
     @available(iOS 16.1, *)
     private func hydrateFromActivityKit() {
+        let metadata = loadAllMetadata()
         for activity in Activity<CapgoLiveActivityAttributes>.activities {
             lock.lock()
             let activityId = activity.attributes.activityId
@@ -271,17 +326,20 @@ public final class CapgoLiveActivityManager {
                 existing.config["data"] = data
                 activities[activityId] = existing
             } else {
-                activities[activityId] = StoredActivity(
-                    config: [
-                        "state": state,
-                        "startDate": 0,
-                        "data": data
-                    ],
-                    pushToken: nil,
-                    activity: activity
-                )
+                // Recovered after an app restart: restore persisted metadata. startDate stays 0
+                // (documented as unknown) only for activities started by an older plugin version.
+                let stored = metadata[activityId] ?? [:]
+                var config: [String: Any] = [
+                    "state": state,
+                    "startDate": stored["startDate"] ?? 0,
+                    "data": data
+                ]
+                if let staleDate = stored["staleDate"] { config["staleDate"] = staleDate }
+                if let relevanceScore = stored["relevanceScore"] { config["relevanceScore"] = relevanceScore }
+                activities[activityId] = StoredActivity(config: config, pushToken: nil, activity: activity)
             }
             lock.unlock()
+            observePushTokens(for: activity, activityId: activityId)
         }
     }
 
@@ -289,7 +347,7 @@ public final class CapgoLiveActivityManager {
         score.map { min(max($0 / 100.0, 0), 1) }
     }
 
-    @available(iOS 16.2, *)
+    @available(iOS 16.1, *)
     private func alertConfiguration(from config: [String: Any]?) -> AlertConfiguration? {
         guard let config,
               let title = config["title"] as? String,

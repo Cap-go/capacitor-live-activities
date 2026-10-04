@@ -14,6 +14,7 @@ const actionButtons = ['start', 'update', 'end', 'refresh'].map((id) => document
 let busy = false;
 let activityId = null;
 let stageIndex = 0;
+let stageRestored = false;
 
 const setOutput = (value) => {
   output.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
@@ -35,6 +36,13 @@ async function guarded(fn) {
   }
 }
 
+// Restore the delivery stage from the activity's current data (e.g. after a page reload),
+// so Update never moves the demo backward.
+function stageIndexFor(activity) {
+  const index = deliveryStages.findIndex((stage) => stage.status === activity?.data?.status);
+  return index >= 0 ? index : 0;
+}
+
 function baseData() {
   return {
     orderNumber: '12345',
@@ -52,18 +60,23 @@ async function refresh() {
   const active = activities.activities?.filter((item) => item.state === 'active') ?? [];
   count.textContent = String(active.length);
 
-  const token = active.find((item) => item.pushToken)?.pushToken;
-  pushToken.textContent = token ?? 'Not available yet';
-
-  if (activityId && active.some((item) => item.activityId === activityId)) {
-    activityIdLabel.textContent = activityId;
-  } else if (active.length === 0) {
-    activityId = null;
-    activityIdLabel.textContent = 'None';
-  } else if (!activityId) {
-    activityId = active[0].activityId;
-    activityIdLabel.textContent = activityId;
+  // Keep the selection on an active activity; replace a stale or missing selection.
+  let selected = active.find((item) => item.activityId === activityId);
+  if (!selected && active.length > 0) {
+    selected = active[0];
+    stageIndex = stageIndexFor(selected);
+  } else if (selected && !stageRestored) {
+    stageIndex = stageIndexFor(selected);
   }
+  stageRestored = true;
+  activityId = selected?.activityId ?? null;
+  activityIdLabel.textContent = activityId ?? 'None';
+  if (!selected) {
+    stageIndex = 0;
+  }
+
+  // Show the push token of the selected activity only, so it always matches the displayed ID.
+  pushToken.textContent = selected?.pushToken ?? 'Not available yet';
 
   setOutput(activities);
 }
