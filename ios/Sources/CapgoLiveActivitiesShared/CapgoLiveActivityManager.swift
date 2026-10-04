@@ -138,6 +138,8 @@ public final class CapgoLiveActivityManager {
     }
 
     private func saveMetadata(activityId: String, startDate: Double? = nil, staleDate: Double?, relevanceScore: Double?) {
+        lock.lock()
+        defer { lock.unlock() }
         var all = loadAllMetadata()
         var entry = all[activityId] ?? [:]
         if let startDate { entry["startDate"] = startDate }
@@ -147,10 +149,13 @@ public final class CapgoLiveActivityManager {
         UserDefaults.standard.set(all, forKey: metadataDefaultsKey)
     }
 
-    private func removeMetadata(activityId: String) {
+    private func pruneMetadata(keeping activityIds: Set<String>) {
+        lock.lock()
+        defer { lock.unlock() }
         var all = loadAllMetadata()
-        guard all.removeValue(forKey: activityId) != nil else { return }
-        UserDefaults.standard.set(all, forKey: metadataDefaultsKey)
+        let pruned = all.filter { activityIds.contains($0.key) }
+        guard pruned.count != all.count else { return }
+        UserDefaults.standard.set(pruned, forKey: metadataDefaultsKey)
     }
 
     public func update(
@@ -245,7 +250,6 @@ public final class CapgoLiveActivityManager {
             activities[activityId] = updated
         }
         lock.unlock()
-        removeMetadata(activityId: activityId)
     }
 
     public func allActivities() -> [[String: Any]] {
@@ -313,8 +317,10 @@ public final class CapgoLiveActivityManager {
 
     @available(iOS 16.1, *)
     private func hydrateFromActivityKit() {
+        let kitActivities = Activity<CapgoLiveActivityAttributes>.activities
+        let liveIds = Set(kitActivities.map(\.attributes.activityId))
         let metadata = loadAllMetadata()
-        for activity in Activity<CapgoLiveActivityAttributes>.activities {
+        for activity in kitActivities {
             lock.lock()
             let activityId = activity.attributes.activityId
             let stateData = currentContentData(from: activity)
@@ -341,6 +347,7 @@ public final class CapgoLiveActivityManager {
             lock.unlock()
             observePushTokens(for: activity, activityId: activityId)
         }
+        pruneMetadata(keeping: liveIds)
     }
 
     private func normalizedRelevance(_ score: Double?) -> Double? {

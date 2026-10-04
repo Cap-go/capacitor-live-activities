@@ -65,7 +65,7 @@ async function refresh() {
   if (!selected && active.length > 0) {
     selected = active[0];
     stageIndex = stageIndexFor(selected);
-  } else if (selected && !stageRestored) {
+  } else if (selected && (!stageRestored || stageIndexFor(selected) !== stageIndex)) {
     stageIndex = stageIndexFor(selected);
   }
   stageRestored = true;
