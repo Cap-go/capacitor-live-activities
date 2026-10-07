@@ -12,7 +12,7 @@ Show iOS Live Activities and Dynamic Island updates from your Capacitor app, wit
 </div>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Cap-go/capacitor-live-activities/main/.github/assets/readme-demo.webp" alt="Animated Live Activities demo showing lock screen and Dynamic Island updates from Capacitor" width="300" />
+  <img src="./.github/assets/readme-demo.webp" alt="Animated Live Activities demo showing lock screen and Dynamic Island updates from Capacitor" width="300" />
 </p>
 
 ## Key features
