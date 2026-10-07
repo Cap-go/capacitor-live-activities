@@ -1,19 +1,28 @@
 # @capgo/capacitor-live-activities
-<a href="https://capgo.app/"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-live-activities" alt="Capgo - Instant updates for Capacitor" /></a>
+
+Show iOS Live Activities and Dynamic Island updates from your Capacitor app, with a JSON layout system instead of SwiftUI code. Built for deliveries, rides, scores and timers.
+
+<a href="https://capgo.app/?ref=plugin_live_activities"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-live-activities" alt="Capgo - Instant updates for Capacitor" /></a>
 
 <div align="center">
-  <h2><a href="https://capgo.app/?ref=plugin_live_activities"> ➡️ Get Instant updates for your App with Capgo</a></h2>
-  <h2><a href="https://capgo.app/consulting/?ref=plugin_live_activities"> Missing a feature? We'll build the plugin for you 💪</a></h2>
+  <p><b>Capgo</b>: open-source live updates for Ionic and Capacitor apps. Ship OTA fixes and features instantly, without waiting for app store review.</p>
+  <h2><a href="https://capgo.app/register/?ref=plugin_live_activities">➡️ Get started for free</a></h2>
+  <p>14-day unlimited free trial. No credit card required</p>
+  <p><a href="https://capgo.app/consulting/?ref=plugin_live_activities">Missing a feature? We'll build the plugin for you 💪</a></p>
 </div>
 
-Manage iOS Live Activities from Capacitor with a powerful JSON-based layout system.
+<p align="center">
+  <img src="./.github/assets/readme-demo.webp" alt="Animated Live Activities demo showing lock screen and Dynamic Island updates from Capacitor" width="300" />
+</p>
 
-## Demo
+## Key features
 
-<figure>
-  <img src="./assets/demo.webp" alt="Animated Live Activities demo showing lock screen and Dynamic Island updates from Capacitor" width="300" />
-  <figcaption>Live Activity and Dynamic Island updates</figcaption>
-</figure>
+- **Lifecycle**: `startActivity()`, `updateActivity()`, `endActivity()` and `getAllActivities()`.
+- **JSON layouts**: describe the lock screen and Dynamic Island views without writing Swift.
+- **Images**: `saveImage()`, `listImages()`, `removeImage()` and `cleanupImages()` share images through your App Group.
+- **Timer sequences**: `startTimerSequence()` with pause, resume, skip, previous and `timerSequenceEvent` for workouts and sports.
+- **Support check**: `areActivitiesSupported()` before you start.
+- **Platforms**: iOS and Android. Live Activities need iOS 16.1 or later. On Android, timer sequences show as a foreground notification. Web is not available.
 
 ## Why Capacitor Live Activities?
 
