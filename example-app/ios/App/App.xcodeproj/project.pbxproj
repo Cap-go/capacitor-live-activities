@@ -73,6 +73,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				CF0ED34B90A64077B55C6201 /* LiveActivitiesExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -440,6 +441,7 @@
 		9CF925D8157C454BA4C6EAC9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = ../LiveActivities/LiveActivities.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -462,6 +464,7 @@
 		CA5807772C8F45648BA5EB45 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = ../LiveActivities/LiveActivities.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

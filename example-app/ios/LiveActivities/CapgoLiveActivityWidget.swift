@@ -14,6 +14,7 @@ struct CapgoLiveActivityWidget: Widget {
             )
             .padding(12)
             .activityBackgroundTint(Color.black.opacity(0.2))
+            .widgetURL(widgetURL(from: context.attributes.behaviorJSON))
         } dynamicIsland: { context in
             let groupId = appGroupIdentifier()
             let island = parseIsland(context.attributes.dynamicIslandLayoutJSON)
@@ -70,6 +71,16 @@ struct CapgoLiveActivityWidget: Widget {
 
     private func appGroupIdentifier() -> String? {
         "group.app.capgo.live.activities.liveactivities"
+    }
+
+    private func widgetURL(from behaviorJSON: String?) -> URL? {
+        guard let behaviorJSON,
+              let data = behaviorJSON.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let urlString = object["widgetUrl"] as? String else {
+            return nil
+        }
+        return URL(string: urlString)
     }
 
     private func parseIsland(_ json: String) -> IslandRegions? {

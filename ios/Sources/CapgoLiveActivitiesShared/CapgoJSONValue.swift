@@ -26,7 +26,10 @@ public enum CapgoJSONValue: Codable, Hashable, Sendable {
         } else if let value = try? container.decode([CapgoJSONValue].self) {
             self = .array(value)
         } else {
-            self = .null
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Unsupported JSON value for CapgoJSONValue"
+            )
         }
     }
 

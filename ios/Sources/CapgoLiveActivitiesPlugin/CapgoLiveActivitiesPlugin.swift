@@ -87,6 +87,8 @@ public class CapgoLiveActivitiesPlugin: CAPPlugin, CAPBridgedPlugin {
                 appGroupId: appGroupId
             )
             call.resolve(["activityId": activityId])
+        } catch CapgoLiveActivityError.invalidOptions(let message) {
+            call.reject(message)
         } catch {
             call.reject("Failed to start Live Activity: \(error.localizedDescription)")
         }
@@ -120,6 +122,8 @@ public class CapgoLiveActivitiesPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.resolve()
             } catch CapgoLiveActivityError.notFound {
                 call.reject("Activity not found")
+            } catch CapgoLiveActivityError.invalidOptions(let message) {
+                call.reject(message)
             } catch {
                 call.reject("Failed to update Live Activity: \(error.localizedDescription)")
             }

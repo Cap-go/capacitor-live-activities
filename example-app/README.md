@@ -46,7 +46,7 @@ In Xcode:
 
 1. Select the **App** scheme and your simulator or device.
 2. Confirm **App** and **LiveActivitiesExtension** targets use deployment target **iOS 16.1+**.
-3. Confirm App Groups `group.app.capgo.live.activities.liveactivities` on **App** and **LiveActivitiesExtension** (already set in the committed entitlements).
+3. Confirm App Groups `group.app.capgo.live.activities.liveactivities` on **App** and **LiveActivitiesExtension** (already set in the committed entitlements). If you change this id, update every copy together: App entitlements, LiveActivities entitlements, `CapgoLiveActivityWidget.swift` `appGroupIdentifier()`, and the plugin App Group in your host app.
 4. Build and run (**Cmd+R**).
 
 ### After changing web code

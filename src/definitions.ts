@@ -344,7 +344,7 @@ export interface ActivityInfo {
    * ActivityKit push token (hex), when push updates are enabled for the activity.
    * Use this token with APNs liveactivity push type for server-driven updates.
    *
-   * @since 1.2.0
+   * @since 1.3.0
    */
   pushToken?: string;
 }

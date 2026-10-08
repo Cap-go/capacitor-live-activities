@@ -129,8 +129,8 @@ button.secondary {
 }
 
 button.danger {
-  background: linear-gradient(120deg, #f97316, #ef4444);
-  box-shadow: 0 10px 20px rgba(239, 68, 68, 0.25);
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+  box-shadow: 0 10px 22px rgba(153, 27, 27, 0.35);
 }
 
 button:disabled {

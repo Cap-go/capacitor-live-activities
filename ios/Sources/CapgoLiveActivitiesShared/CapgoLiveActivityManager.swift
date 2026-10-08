@@ -34,6 +34,11 @@ public final class CapgoLiveActivityManager {
         guard #available(iOS 16.1, *) else {
             throw CapgoLiveActivityError.unsupported
         }
+        if #unavailable(iOS 16.2), staleDate != nil || relevanceScore != nil {
+            throw CapgoLiveActivityError.invalidOptions(
+                "staleDate and relevanceScore require iOS 16.2 or later"
+            )
+        }
 
         let layoutJSON = jsonString(layout)
         let islandJSON = jsonString(dynamicIslandLayout)
@@ -168,6 +173,11 @@ public final class CapgoLiveActivityManager {
         guard #available(iOS 16.1, *) else {
             throw CapgoLiveActivityError.unsupported
         }
+        if #unavailable(iOS 16.2), staleDate != nil || relevanceScore != nil {
+            throw CapgoLiveActivityError.invalidOptions(
+                "staleDate and relevanceScore require iOS 16.2 or later"
+            )
+        }
 
         hydrateFromActivityKit()
         lock.lock()
@@ -243,13 +253,9 @@ public final class CapgoLiveActivityManager {
         }
 
         lock.lock()
-        if var updated = activities[activityId] {
-            updated.config["state"] = "ended"
-            if let data { updated.config["data"] = data }
-            updated.activity = nil
-            activities[activityId] = updated
-        }
+        activities.removeValue(forKey: activityId)
         lock.unlock()
+        pruneMetadata(keeping: Set(activities.keys))
     }
 
     public func allActivities() -> [[String: Any]] {
@@ -361,11 +367,25 @@ public final class CapgoLiveActivityManager {
               let body = config["body"] as? String else {
             return nil
         }
+        let sound = alertSound(from: config["sound"] as? String)
         return AlertConfiguration(
             title: LocalizedStringResource(stringLiteral: title),
             body: LocalizedStringResource(stringLiteral: body),
-            sound: .default
+            sound: sound
         )
+    }
+
+    @available(iOS 16.1, *)
+    private func alertSound(from raw: String?) -> AlertConfiguration.AlertSound {
+        guard let raw, !raw.isEmpty else { return .default }
+        switch raw.lowercased() {
+        case "default":
+            return .default
+        case "none":
+            return .named("")
+        default:
+            return .named(raw)
+        }
     }
 
     @available(iOS 16.1, *)
@@ -437,7 +457,19 @@ public final class CapgoLiveActivityManager {
     }
 }
 
-public enum CapgoLiveActivityError: Error {
+public enum CapgoLiveActivityError: Error, LocalizedError {
     case unsupported
     case notFound
+    case invalidOptions(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .unsupported:
+            return "Live Activities are not supported on this device"
+        case .notFound:
+            return "Activity not found"
+        case .invalidOptions(let message):
+            return message
+        }
+    }
 }

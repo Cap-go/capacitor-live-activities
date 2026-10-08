@@ -964,7 +964,7 @@ Activity info returned from getAllActivities
 | **`state`**      | <code>'active' \| 'ended' \| 'dismissed' \| 'stale'</code>       | Current activity state                                                                                                                                            |       |
 | **`startDate`**  | <code>number</code>                                              | Activity start date in milliseconds since epoch. Persisted across app restarts; `0` means unknown (activity started by a plugin version that did not persist it). |       |
 | **`data`**       | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code> | Current data                                                                                                                                                      |       |
-| **`pushToken`**  | <code>string</code>                                              | ActivityKit push token (hex), when push updates are enabled for the activity. Use this token with APNs liveactivity push type for server-driven updates.          | 1.2.0 |
+| **`pushToken`**  | <code>string</code>                                              | ActivityKit push token (hex), when push updates are enabled for the activity. Use this token with APNs liveactivity push type for server-driven updates.          | 1.3.0 |
 
 
 #### SaveImageResult

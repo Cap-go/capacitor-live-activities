@@ -109,13 +109,15 @@ public enum CapgoLayoutRenderer {
         let fontSize = CGFloat(element["fontSize"] as? Double ?? 14)
         let color = colorFrom(element["color"] as? String) ?? .primary
         let weight = fontWeight(element["fontWeight"] as? String)
+        let design = fontDesign(element["fontDesign"] as? String)
         let lineLimit = element["lineLimit"] as? Int
 
-        return Text(text)
-            .font(.system(size: fontSize, weight: weight))
+        let view = Text(text)
+            .font(.system(size: fontSize, weight: weight, design: design))
             .foregroundColor(color)
             .lineLimit(lineLimit)
             .multilineTextAlignment(textAlignment(element["alignment"] as? String))
+        return applyProperties(view, props: element["properties"] as? [String: Any])
     }
 
     @ViewBuilder
@@ -130,40 +132,58 @@ public enum CapgoLayoutRenderer {
         let height = CGFloat(element["height"] as? Double ?? 24)
         let tint = colorFrom(element["tintColor"] as? String)
 
-        switch source {
-        case "sfSymbol":
-            if let tint {
-                Image(systemName: value)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: width, height: height)
-                    .foregroundColor(tint)
-            } else {
-                Image(systemName: value)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: width, height: height)
+        let contentMode = element["contentMode"] as? String ?? "fit"
+        let scaled: (Image) -> AnyView = { image in
+            let resized = image.resizable().scaledToFit()
+            if contentMode == "fill" {
+                return AnyView(resized.scaledToFill().frame(width: width, height: height).clipped())
             }
-        case "saved":
-            if value.contains("/") || value.contains("..") {
-                Image(systemName: "photo")
-                    .frame(width: width, height: height)
-            } else if let appGroupId,
-               let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupId)?
-                .appendingPathComponent("LiveActivityImages/\(value).jpg"),
-               let uiImage = UIImage(contentsOfFile: url.path) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: width, height: height)
-            } else {
-                Image(systemName: "photo")
-                    .frame(width: width, height: height)
-            }
-        default:
-            Image(systemName: "questionmark")
-                .frame(width: width, height: height)
+            return AnyView(resized.frame(width: width, height: height))
         }
+
+        let imageContent: AnyView = {
+            switch source {
+            case "sfSymbol":
+                let symbol = tint.map { Image(systemName: value).foregroundColor($0) } ?? Image(systemName: value)
+                return scaled(symbol)
+            case "saved":
+                if value.contains("/") || value.contains("..") {
+                    return AnyView(Image(systemName: "photo").frame(width: width, height: height))
+                }
+                if let appGroupId,
+                   let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupId)?
+                    .appendingPathComponent("LiveActivityImages/\(value).jpg"),
+                   let uiImage = UIImage(contentsOfFile: url.path) {
+                    return scaled(Image(uiImage: uiImage))
+                }
+                return AnyView(Image(systemName: "photo").frame(width: width, height: height))
+            case "url":
+                if let url = URL(string: value) {
+                    return AnyView(
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .success(let image):
+                                scaled(image)
+                            default:
+                                Image(systemName: "photo").frame(width: width, height: height)
+                            }
+                        }
+                    )
+                }
+                return AnyView(Image(systemName: "photo").frame(width: width, height: height))
+            case "asset":
+                return scaled(Image(value))
+            case "base64":
+                if let data = Data(base64Encoded: value), let uiImage = UIImage(data: data) {
+                    return scaled(Image(uiImage: uiImage))
+                }
+                return AnyView(Image(systemName: "photo").frame(width: width, height: height))
+            default:
+                return AnyView(Image(systemName: "questionmark").frame(width: width, height: height))
+            }
+        }()
+
+        return applyProperties(imageContent, props: element["properties"] as? [String: Any])
     }
 
     private static func progressView(element: [String: Any], data: [String: CapgoJSONValue]) -> some View {
@@ -171,34 +191,64 @@ public enum CapgoLayoutRenderer {
         let total = numericValue(element["total"], data: data) ?? 1
         let progress = total > 0 ? min(max(value / total, 0), 1) : 0
         let tint = colorFrom(element["tint"] as? String) ?? .green
-        return ProgressView(value: progress)
-            .tint(tint)
+        let view = ProgressView(value: progress).tint(tint)
+        return applyProperties(view, props: element["properties"] as? [String: Any])
     }
 
     @ViewBuilder
     private static func timerView(element: [String: Any], data: [String: CapgoJSONValue]) -> some View {
-        let key = element["targetDate"] as? String
-        let timestamp = numericValue(key, data: data) ?? Date().timeIntervalSince1970 * 1000
+        let timestamp = numericValue(element["targetDate"], data: data) ?? Date().timeIntervalSince1970 * 1000
         let date = Date(timeIntervalSince1970: timestamp / 1000)
         let fontSize = CGFloat(element["fontSize"] as? Double ?? 16)
         let color = colorFrom(element["color"] as? String) ?? .primary
         let weight = fontWeight(element["fontWeight"] as? String)
-        Text(date, style: .timer)
+        let style = element["style"] as? String ?? "timer"
+        let pausesOnReach = element["pausesOnReach"] as? Bool ?? false
+        let reached = date <= Date()
+
+        let timerText: Text = {
+            if pausesOnReach && reached {
+                return Text(date, format: .dateTime.hour().minute().second())
+            }
+            switch style {
+            case "relative":
+                return Text(date, style: .relative)
+            case "offset":
+                return Text(timerInterval: Date()...date, countsDown: true)
+            default:
+                return Text(date, style: .timer)
+            }
+        }()
+
+        let view = timerText
             .font(.system(size: fontSize, weight: weight))
             .foregroundColor(color)
             .monospacedDigit()
+        applyProperties(view, props: element["properties"] as? [String: Any])
     }
 
     private static func gaugeView(element: [String: Any], data: [String: CapgoJSONValue]) -> some View {
-        let value = numericValue(element["value"], data: data) ?? 0
+        let value = min(max(numericValue(element["value"], data: data) ?? 0, 0), 1)
         let tint = colorFrom(element["tint"] as? String) ?? .blue
-        return Gauge(value: min(max(value, 0), 1)) {
-            if let label = element["label"] as? String {
-                Text(label)
-            }
+        let label = element["label"] as? String
+        let current = element["currentValueLabel"] as? String
+        let minimum = element["minimumValueLabel"] as? String
+        let maximum = element["maximumValueLabel"] as? String
+        let style = gaugeStyle(element["style"] as? String)
+
+        let gauge = Gauge(value: value, in: 0 ... 1) {
+            if let label { Text(label) }
+        } currentValueLabel: {
+            if let current { Text(current) }
+        } minimumValueLabel: {
+            if let minimum { Text(minimum) }
+        } maximumValueLabel: {
+            if let maximum { Text(maximum) }
         }
-        .gaugeStyle(.accessoryCircular)
+        .gaugeStyle(style)
         .tint(tint)
+
+        return applyProperties(gauge, props: element["properties"] as? [String: Any])
     }
 
     private static func applyProperties<V: View>(_ view: V, props: [String: Any]?) -> some View {
@@ -207,11 +257,11 @@ public enum CapgoLayoutRenderer {
         if let padding = props["padding"] as? Double {
             result = AnyView(result.padding(padding))
         }
-        if let cornerRadius = props["cornerRadius"] as? Double {
-            result = AnyView(result.cornerRadius(cornerRadius))
-        }
         if let background = props["backgroundColor"] as? String, let color = colorFrom(background) {
             result = AnyView(result.background(color))
+        }
+        if let cornerRadius = props["cornerRadius"] as? Double {
+            result = AnyView(result.cornerRadius(cornerRadius))
         }
         if let opacity = props["opacity"] as? Double {
             result = AnyView(result.opacity(opacity))
@@ -245,18 +295,64 @@ public enum CapgoLayoutRenderer {
 
     private static func colorFrom(_ raw: String?) -> Color? {
         guard let raw, !raw.isEmpty else { return nil }
-        if raw.hasPrefix("#"), raw.count == 7 || raw.count == 9 {
+        if raw.hasPrefix("#") {
             let hex = String(raw.dropFirst())
+            guard hex.count == 6 || hex.count == 8 else { return nil }
             var value: UInt64 = 0
-            Scanner(string: hex).scanHexInt64(&value)
+            guard Scanner(string: hex).scanHexInt64(&value) else { return nil }
             if hex.count == 6 {
                 let r = Double((value & 0xFF0000) >> 16) / 255
                 let g = Double((value & 0x00FF00) >> 8) / 255
                 let b = Double(value & 0x0000FF) / 255
                 return Color(red: r, green: g, blue: b)
             }
+            let a = Double((value & 0xFF000000) >> 24) / 255
+            let r = Double((value & 0x00FF0000) >> 16) / 255
+            let g = Double((value & 0x0000FF00) >> 8) / 255
+            let b = Double(value & 0x000000FF) / 255
+            return Color(red: r, green: g, blue: b, opacity: a)
         }
-        return nil
+        switch raw.lowercased() {
+        case "primary": return .primary
+        case "secondary": return .secondary
+        case "black": return .black
+        case "white": return .white
+        case "red": return .red
+        case "green": return .green
+        case "blue": return .blue
+        case "orange": return .orange
+        case "yellow": return .yellow
+        case "pink": return .pink
+        case "purple": return .purple
+        case "gray", "grey": return .gray
+        default:
+            if let uiColor = UIColor(named: raw) {
+                return Color(uiColor)
+            }
+            return nil
+        }
+    }
+
+    private static func fontDesign(_ raw: String?) -> Font.Design {
+        switch raw {
+        case "monospaced": return .monospaced
+        case "rounded": return .rounded
+        case "serif": return .serif
+        default: return .default
+        }
+    }
+
+    private static func gaugeStyle(_ raw: String?) -> GaugeStyle {
+        switch raw {
+        case "linearCapacity":
+            return .linearCapacity
+        case "accessoryCircularCapacity":
+            return .accessoryCircularCapacity
+        case "automatic":
+            return .automatic
+        default:
+            return .accessoryCircular
+        }
     }
 
     private static func fontWeight(_ raw: String?) -> Font.Weight {
