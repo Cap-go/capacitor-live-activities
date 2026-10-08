@@ -8,7 +8,7 @@ import ActivityKit
  */
 @objc(CapgoLiveActivitiesPlugin)
 public class CapgoLiveActivitiesPlugin: CAPPlugin, CAPBridgedPlugin {
-    private let pluginVersion: String = "1.2.0"
+    private let pluginVersion: String = "1.2.1"
     public let identifier = "CapgoLiveActivitiesPlugin"
     public let jsName = "CapgoLiveActivities"
     public let pluginMethods: [CAPPluginMethod] = [
