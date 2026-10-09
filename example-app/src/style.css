@@ -79,6 +79,20 @@ h1 {
   color: #0f172a;
 }
 
+.status-card.wide {
+  grid-column: 1 / -1;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  word-break: break-all;
+}
+
+.mono.small {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
 .measurement-display {
   padding: 1.2rem;
   border-radius: 14px;
@@ -112,6 +126,11 @@ button.secondary {
   background: #f1f5f9;
   color: #0f172a;
   box-shadow: none;
+}
+
+button.danger {
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+  box-shadow: 0 10px 22px rgba(153, 27, 27, 0.35);
 }
 
 button:disabled {

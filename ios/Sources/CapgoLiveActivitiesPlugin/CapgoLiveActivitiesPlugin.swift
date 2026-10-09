@@ -1,6 +1,9 @@
 import Foundation
 import Capacitor
 import ActivityKit
+#if canImport(CapgoLiveActivitiesShared)
+import CapgoLiveActivitiesShared
+#endif
 
 /**
  * Capacitor plugin for managing iOS Live Activities.
@@ -31,7 +34,6 @@ public class CapgoLiveActivitiesPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "getTimerState", returnType: CAPPluginReturnPromise)
     ]
 
-    private var activityStore: [String: Any] = [:]
     var timerSequences: [String: TimerSequenceInfo] = [:]
 
     @objc func areActivitiesSupported(_ call: CAPPluginCall) {
@@ -71,18 +73,25 @@ public class CapgoLiveActivitiesPlugin: CAPPlugin, CAPBridgedPlugin {
         let relevanceScore = call.getDouble("relevanceScore")
 
         let activityId = UUID().uuidString
-        let activityConfig: [String: Any] = [
-            "layout": layoutData,
-            "dynamicIslandLayout": dynamicIslandData,
-            "behavior": behavior ?? [:],
-            "data": data,
-            "staleDate": staleDate as Any,
-            "relevanceScore": relevanceScore as Any,
-            "startDate": Date().timeIntervalSince1970 * 1000
-        ]
-        activityStore[activityId] = activityConfig
+        let appGroupId = appGroupIdentifier()
 
-        call.resolve(["activityId": activityId])
+        do {
+            try CapgoLiveActivityManager.shared.start(
+                activityId: activityId,
+                layout: layoutData,
+                dynamicIslandLayout: dynamicIslandData,
+                behavior: behavior,
+                data: data,
+                staleDate: staleDate,
+                relevanceScore: relevanceScore,
+                appGroupId: appGroupId
+            )
+            call.resolve(["activityId": activityId])
+        } catch CapgoLiveActivityError.invalidOptions(let message) {
+            call.reject(message)
+        } catch {
+            call.reject("Failed to start Live Activity: \(error.localizedDescription)")
+        }
     }
 
     @objc func updateActivity(_ call: CAPPluginCall) {
@@ -97,24 +106,28 @@ public class CapgoLiveActivitiesPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
 
-        guard var config = activityStore[activityId] as? [String: Any] else {
-            call.reject("Activity not found")
-            return
-        }
+        let staleDate = call.getDouble("staleDate")
+        let relevanceScore = call.getDouble("relevanceScore")
+        let alertConfiguration = call.getObject("alertConfiguration")
 
-        config["data"] = data
-        if let alertConfig = call.getObject("alertConfiguration") {
-            config["alertConfiguration"] = alertConfig
+        Task {
+            do {
+                try await CapgoLiveActivityManager.shared.update(
+                    activityId: activityId,
+                    data: data,
+                    staleDate: staleDate,
+                    relevanceScore: relevanceScore,
+                    alertConfig: alertConfiguration
+                )
+                call.resolve()
+            } catch CapgoLiveActivityError.notFound {
+                call.reject("Activity not found")
+            } catch CapgoLiveActivityError.invalidOptions(let message) {
+                call.reject(message)
+            } catch {
+                call.reject("Failed to update Live Activity: \(error.localizedDescription)")
+            }
         }
-        if let staleDate = call.getDouble("staleDate") {
-            config["staleDate"] = staleDate
-        }
-        if let relevanceScore = call.getDouble("relevanceScore") {
-            config["relevanceScore"] = relevanceScore
-        }
-        activityStore[activityId] = config
-
-        call.resolve()
     }
 
     @objc func endActivity(_ call: CAPPluginCall) {
@@ -128,35 +141,40 @@ public class CapgoLiveActivitiesPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
 
-        guard var config = activityStore[activityId] as? [String: Any] else {
-            call.reject("Activity not found")
-            return
-        }
+        let dismissalPolicy = call.getString("dismissalPolicy")
+        let dismissAfter = call.getDouble("dismissAfter")
+        let finalData = call.getObject("data")
 
-        config["state"] = "ended"
-        if let finalData = call.getObject("data") {
-            config["data"] = finalData
+        Task {
+            do {
+                try await CapgoLiveActivityManager.shared.end(
+                    activityId: activityId,
+                    data: finalData,
+                    dismissalPolicy: dismissalPolicy,
+                    dismissAfter: dismissAfter
+                )
+                call.resolve()
+            } catch CapgoLiveActivityError.notFound {
+                call.reject("Activity not found")
+            } catch {
+                call.reject("Failed to end Live Activity: \(error.localizedDescription)")
+            }
         }
-        activityStore[activityId] = config
-
-        call.resolve()
     }
 
     @objc func getAllActivities(_ call: CAPPluginCall) {
-        var activities: [[String: Any]] = []
-
-        for (activityId, config) in activityStore {
-            if let configDict = config as? [String: Any] {
-                let activity: [String: Any] = [
-                    "activityId": activityId,
-                    "state": configDict["state"] as? String ?? "active",
-                    "startDate": configDict["startDate"] ?? 0,
-                    "data": configDict["data"] ?? [:]
-                ]
-                activities.append(activity)
+        let activities = CapgoLiveActivityManager.shared.allActivities().map { activity -> [String: Any] in
+            var payload: [String: Any] = [
+                "activityId": activity["activityId"] ?? "",
+                "state": activity["state"] ?? "active",
+                "startDate": activity["startDate"] ?? 0,
+                "data": activity["data"] ?? [:]
+            ]
+            if let pushToken = activity["pushToken"] as? String, !pushToken.isEmpty {
+                payload["pushToken"] = pushToken
             }
+            return payload
         }
-
         call.resolve(["activities": activities])
     }
 
@@ -249,8 +267,12 @@ public class CapgoLiveActivitiesPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     func getSharedContainerURL() -> URL? {
-        guard let bundleId = Bundle.main.bundleIdentifier else { return nil }
-        let groupId = "group.\(bundleId).liveactivities"
+        guard let groupId = appGroupIdentifier() else { return nil }
         return FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId)
+    }
+
+    func appGroupIdentifier() -> String? {
+        guard let bundleId = Bundle.main.bundleIdentifier else { return nil }
+        return "group.\(bundleId).liveactivities"
     }
 }
