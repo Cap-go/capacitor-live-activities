@@ -3,19 +3,26 @@ import PackageDescription
 
 let package = Package(
     name: "CapgoCapacitorLiveActivities",
-    platforms: [.iOS(.v16)],
+    platforms: [.iOS("16.1")],
     products: [
         .library(
             name: "CapgoCapacitorLiveActivities",
-            targets: ["CapgoLiveActivitiesPlugin"])
+            targets: ["CapgoLiveActivitiesPlugin"]),
+        .library(
+            name: "CapgoLiveActivitiesShared",
+            targets: ["CapgoLiveActivitiesShared"])
     ],
     dependencies: [
         .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", from: "8.0.0")
     ],
     targets: [
         .target(
+            name: "CapgoLiveActivitiesShared",
+            path: "ios/Sources/CapgoLiveActivitiesShared"),
+        .target(
             name: "CapgoLiveActivitiesPlugin",
             dependencies: [
+                "CapgoLiveActivitiesShared",
                 .product(name: "Capacitor", package: "capacitor-swift-pm"),
                 .product(name: "Cordova", package: "capacitor-swift-pm")
             ],

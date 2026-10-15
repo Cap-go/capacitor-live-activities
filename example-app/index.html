@@ -13,15 +13,25 @@
   </head>
   <body>
     <main class="container">
-      <h1>@capgo/capacitor-live-activities</h1>
-      <p class="lead">Inspect Live Activities support and list active activities on iOS.</p>
+      <h1>Live Activities demo</h1>
+      <p class="lead">
+        Delivery tracking sample using <code>@capgo/capacitor-live-activities</code> on iOS 16.1+.
+      </p>
       <div class="status-grid">
         <div class="status-card"><h2>Support</h2><p id="support">Checking...</p></div>
-        <div class="status-card"><h2>Activities</h2><p id="count">Checking...</p></div>
+        <div class="status-card"><h2>Active</h2><p id="count">0</p></div>
+        <div class="status-card"><h2>Activity ID</h2><p id="activity-id" class="mono">None</p></div>
+        <div class="status-card wide">
+          <h2>ActivityKit push token</h2>
+          <p id="push-token" class="mono small">Not available yet</p>
+        </div>
       </div>
       <div class="actions">
-        <button id="refresh">Refresh</button>
-        <button id="get-version" class="secondary">Plugin Version</button>
+        <button id="start">Start delivery</button>
+        <button id="update" class="secondary">Update status</button>
+        <button id="end" class="danger">End activity</button>
+        <button id="refresh" class="secondary">Refresh</button>
+        <button id="get-version" class="secondary">Plugin version</button>
       </div>
       <pre id="output">Waiting for data...</pre>
     </main>

@@ -52,10 +52,13 @@ case "$platform" in
       bunx cap add ios
     fi
     bunx cap sync ios
+    if [ -f ios/configure-live-activities-target.py ]; then
+      python3 ios/configure-live-activities-target.py
+    fi
     # Live Activities require iOS 16.1+; Capacitor's default example app targets 15.0.
     capapp_pkg="$test_app/ios/App/CapApp-SPM/Package.swift"
     if [ -f "$capapp_pkg" ]; then
-      sed -i.bak 's/\.iOS(\.v15)/.iOS(.v16)/' "$capapp_pkg"
+      sed -i.bak -E 's/\.iOS\(\.v1[56]\)/.iOS("16.1")/g' "$capapp_pkg"
       rm -f "$capapp_pkg.bak"
     fi
     pbxproj="$test_app/ios/App/App.xcodeproj/project.pbxproj"

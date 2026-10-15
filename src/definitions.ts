@@ -332,10 +332,21 @@ export interface ActivityInfo {
   activityId: string;
   /** Current activity state */
   state: 'active' | 'ended' | 'dismissed' | 'stale';
-  /** Activity start date */
+  /**
+   * Activity start date in milliseconds since epoch.
+   * Persisted across app restarts; `0` means unknown (activity started by a plugin version
+   * that did not persist it).
+   */
   startDate: number;
   /** Current data */
   data: Record<string, unknown>;
+  /**
+   * ActivityKit push token (hex), when push updates are enabled for the activity.
+   * Use this token with APNs liveactivity push type for server-driven updates.
+   *
+   * @since 1.3.0
+   */
+  pushToken?: string;
 }
 
 /**
