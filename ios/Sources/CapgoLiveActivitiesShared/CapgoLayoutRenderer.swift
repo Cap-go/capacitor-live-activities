@@ -144,8 +144,14 @@ public enum CapgoLayoutRenderer {
         let imageContent: AnyView = {
             switch source {
             case "sfSymbol":
-                let symbol = tint.map { Image(systemName: value).foregroundColor($0) } ?? Image(systemName: value)
-                return scaled(symbol)
+                if let tint {
+                    let image = Image(systemName: value).foregroundColor(tint)
+                    if contentMode == "fill" {
+                        return AnyView(image.resizable().scaledToFill().frame(width: width, height: height).clipped())
+                    }
+                    return AnyView(image.resizable().scaledToFit().frame(width: width, height: height))
+                }
+                return scaled(Image(systemName: value))
             case "saved":
                 if value.contains("/") || value.contains("..") {
                     return AnyView(Image(systemName: "photo").frame(width: width, height: height))
@@ -230,6 +236,7 @@ public enum CapgoLayoutRenderer {
         applyProperties(view, props: element["properties"] as? [String: Any])
     }
 
+    @ViewBuilder
     private static func gaugeView(element: [String: Any], data: [String: CapgoJSONValue]) -> some View {
         let value = min(max(numericValue(element["value"], data: data) ?? 0, 0), 1)
         let tint = colorFrom(element["tint"] as? String) ?? .blue
@@ -237,21 +244,71 @@ public enum CapgoLayoutRenderer {
         let current = element["currentValueLabel"] as? String
         let minimum = element["minimumValueLabel"] as? String
         let maximum = element["maximumValueLabel"] as? String
-        let style = gaugeStyle(element["style"] as? String)
+        let props = element["properties"] as? [String: Any]
+        let styleName = element["style"] as? String
 
-        let gauge = Gauge(value: value, in: 0 ... 1) {
-            if let label { Text(label) }
-        } currentValueLabel: {
-            if let current { Text(current) }
-        } minimumValueLabel: {
-            if let minimum { Text(minimum) }
-        } maximumValueLabel: {
-            if let maximum { Text(maximum) }
+        switch styleName {
+        case "linearCapacity":
+            applyProperties(
+                Gauge(value: value, in: 0 ... 1) {
+                    if let label { Text(label) }
+                } currentValueLabel: {
+                    if let current { Text(current) }
+                } minimumValueLabel: {
+                    if let minimum { Text(minimum) }
+                } maximumValueLabel: {
+                    if let maximum { Text(maximum) }
+                }
+                .gaugeStyle(.linearCapacity)
+                .tint(tint),
+                props: props
+            )
+        case "accessoryCircularCapacity":
+            applyProperties(
+                Gauge(value: value, in: 0 ... 1) {
+                    if let label { Text(label) }
+                } currentValueLabel: {
+                    if let current { Text(current) }
+                } minimumValueLabel: {
+                    if let minimum { Text(minimum) }
+                } maximumValueLabel: {
+                    if let maximum { Text(maximum) }
+                }
+                .gaugeStyle(.accessoryCircularCapacity)
+                .tint(tint),
+                props: props
+            )
+        case "automatic":
+            applyProperties(
+                Gauge(value: value, in: 0 ... 1) {
+                    if let label { Text(label) }
+                } currentValueLabel: {
+                    if let current { Text(current) }
+                } minimumValueLabel: {
+                    if let minimum { Text(minimum) }
+                } maximumValueLabel: {
+                    if let maximum { Text(maximum) }
+                }
+                .gaugeStyle(.automatic)
+                .tint(tint),
+                props: props
+            )
+        default:
+            applyProperties(
+                Gauge(value: value, in: 0 ... 1) {
+                    if let label { Text(label) }
+                } currentValueLabel: {
+                    if let current { Text(current) }
+                } minimumValueLabel: {
+                    if let minimum { Text(minimum) }
+                } maximumValueLabel: {
+                    if let maximum { Text(maximum) }
+                }
+                .gaugeStyle(.accessoryCircular)
+                .tint(tint),
+                props: props
+            )
         }
-        .gaugeStyle(style)
-        .tint(tint)
-
-        return applyProperties(gauge, props: element["properties"] as? [String: Any])
     }
 
     private static func applyProperties<V: View>(_ view: V, props: [String: Any]?) -> some View {
@@ -342,19 +399,6 @@ public enum CapgoLayoutRenderer {
         case "rounded": return .rounded
         case "serif": return .serif
         default: return .default
-        }
-    }
-
-    private static func gaugeStyle(_ raw: String?) -> GaugeStyle {
-        switch raw {
-        case "linearCapacity":
-            return .linearCapacity
-        case "accessoryCircularCapacity":
-            return .accessoryCircularCapacity
-        case "automatic":
-            return .automatic
-        default:
-            return .accessoryCircular
         }
     }
 
