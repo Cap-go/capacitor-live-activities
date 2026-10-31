@@ -66,6 +66,7 @@ struct CapgoLiveActivityWidget: Widget {
                     appGroupId: groupId
                 )
             }
+            .widgetURL(widgetURL(from: context.attributes.behaviorJSON))
         }
     }
 

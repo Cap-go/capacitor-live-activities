@@ -202,7 +202,7 @@ public final class CapgoLiveActivityManager {
         let relevance = normalizedRelevance(effectiveRelevance)
 
         let nextState = CapgoLiveActivityAttributes.ContentState(data: contentData)
-        let alert = alertConfiguration(from: alertConfig)
+        let alert = try alertConfiguration(from: alertConfig)
         if #available(iOS 16.2, *) {
             let content: ActivityContent<CapgoLiveActivityAttributes.ContentState>
             if let relevance {
@@ -361,13 +361,13 @@ public final class CapgoLiveActivityManager {
     }
 
     @available(iOS 16.1, *)
-    private func alertConfiguration(from config: [String: Any]?) -> AlertConfiguration? {
+    private func alertConfiguration(from config: [String: Any]?) throws -> AlertConfiguration? {
         guard let config,
               let title = config["title"] as? String,
               let body = config["body"] as? String else {
             return nil
         }
-        let sound = alertSound(from: config["sound"] as? String)
+        let sound = try alertSound(from: config["sound"] as? String)
         return AlertConfiguration(
             title: LocalizedStringResource(stringLiteral: title),
             body: LocalizedStringResource(stringLiteral: body),
@@ -376,13 +376,15 @@ public final class CapgoLiveActivityManager {
     }
 
     @available(iOS 16.1, *)
-    private func alertSound(from raw: String?) -> AlertConfiguration.AlertSound {
+    private func alertSound(from raw: String?) throws -> AlertConfiguration.AlertSound {
         guard let raw, !raw.isEmpty else { return .default }
         switch raw.lowercased() {
         case "default":
             return .default
         case "none":
-            return .named("")
+            throw CapgoLiveActivityError.invalidOptions(
+                "Alert sound \"none\" is not supported by ActivityKit. Omit alertConfiguration for a silent update, or omit the sound property to use the default alert sound."
+            )
         default:
             return .named(raw)
         }

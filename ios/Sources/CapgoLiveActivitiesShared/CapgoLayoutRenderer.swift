@@ -214,6 +214,9 @@ public enum CapgoLayoutRenderer {
             case "relative":
                 return Text(date, style: .relative)
             case "offset":
+                if reached {
+                    return Text(date, format: .dateTime.hour().minute().second())
+                }
                 return Text(timerInterval: Date()...date, countsDown: true)
             default:
                 return Text(date, style: .timer)
