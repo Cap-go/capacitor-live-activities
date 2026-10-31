@@ -22,7 +22,6 @@ Capacitor example app for the local `@capgo/capacitor-live-activities` plugin (`
 From the repository root, build the plugin once so `dist/` exists for the `file:..` dependency:
 
 ```bash
-cd ..
 bun install
 bun run build
 cd example-app
@@ -37,7 +36,6 @@ Live Activities APIs are unavailable on web; the UI still loads for layout check
 From the repository root:
 
 ```bash
-cd ..
 bun install
 bun run build
 cd example-app
@@ -79,10 +77,10 @@ Timer sequence APIs work on Android. Generic `startActivity` Live Activities are
 From the repository root:
 
 ```bash
-cd ..
 bun install
 bun run build
 cd example-app
+bun install
 bun run build
 bunx cap sync android
 bunx cap open android

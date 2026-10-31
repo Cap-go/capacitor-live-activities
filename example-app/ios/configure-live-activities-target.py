@@ -7,6 +7,8 @@ import pathlib
 import uuid
 
 PBXPROJ = pathlib.Path(__file__).resolve().parent / "App" / "App.xcodeproj" / "project.pbxproj"
+APP_INFO_PLIST = PBXPROJ.parent.parent / "Info.plist"
+CAPAPP_PACKAGE = PBXPROJ.parent.parent / "CapApp-SPM" / "Package.swift"
 
 
 def uid() -> str:
@@ -29,6 +31,43 @@ def replace_n(text: str, old: str, new: str, count: int, *, label: str) -> str:
             f"configure-live-activities-target: expected {count} occurrence(s) of {label}, found {found}"
         )
     return text.replace(old, new, count)
+
+
+def ensure_live_activities_info_plist() -> None:
+    if not APP_INFO_PLIST.is_file():
+        print("Skipping Info.plist update:", APP_INFO_PLIST, "not found")
+        return
+    text = APP_INFO_PLIST.read_text()
+    if "NSSupportsLiveActivities" in text:
+        print("Info.plist already enables Live Activities")
+        return
+    anchor = "\t<key>UIViewControllerBasedStatusBarAppearance</key>\n\t<true/>"
+    insertion = (
+        "\t<key>UIViewControllerBasedStatusBarAppearance</key>\n\t<true/>\n"
+        "\t<key>NSSupportsLiveActivities</key>\n\t<true/>"
+    )
+    if anchor not in text:
+        raise SystemExit("configure-live-activities-target: Info.plist anchor not found")
+    APP_INFO_PLIST.write_text(text.replace(anchor, insertion, 1))
+    print("Updated", APP_INFO_PLIST)
+
+
+def ensure_capapp_ios_platform() -> None:
+    if not CAPAPP_PACKAGE.is_file():
+        print("Skipping CapApp-SPM update:", CAPAPP_PACKAGE, "not found")
+        return
+    text = CAPAPP_PACKAGE.read_text()
+    updated = text
+    for old in ('.iOS(.v15)', '.iOS(.v16)', '.iOS("15.0")', '.iOS("16.0")'):
+        updated = updated.replace(old, '.iOS("16.1")')
+    if updated == text:
+        if '.iOS("16.1")' in text:
+            print("CapApp-SPM already targets iOS 16.1")
+            return
+        print("CapApp-SPM platform string not recognized; leaving unchanged")
+        return
+    CAPAPP_PACKAGE.write_text(updated)
+    print("Updated", CAPAPP_PACKAGE)
 
 
 def main() -> None:
@@ -384,6 +423,9 @@ def main() -> None:
         2,
         label="App target CODE_SIGN_ENTITLEMENTS",
     )
+
+    ensure_live_activities_info_plist()
+    ensure_capapp_ios_platform()
 
     PBXPROJ.write_text(text)
     print("Updated", PBXPROJ)

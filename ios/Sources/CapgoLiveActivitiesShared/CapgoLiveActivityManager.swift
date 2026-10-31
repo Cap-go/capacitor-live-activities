@@ -188,10 +188,17 @@ public final class CapgoLiveActivityManager {
             lock.unlock()
             throw CapgoLiveActivityError.notFound
         }
-        let effectiveStaleDate = staleDate ?? stored.config["staleDate"] as? Double
+        let effectiveStaleDate = CapgoActivityMetadata.effectiveStaleDateMillis(
+            requested: staleDate,
+            storedMillis: stored.config["staleDate"] as? Double
+        )
         let effectiveRelevance = relevanceScore ?? stored.config["relevanceScore"] as? Double
         stored.config["data"] = data
-        if let staleDate { stored.config["staleDate"] = staleDate }
+        if let staleDate {
+            stored.config["staleDate"] = staleDate
+        } else if effectiveStaleDate == nil, stored.config["staleDate"] != nil {
+            stored.config.removeValue(forKey: "staleDate")
+        }
         if let relevanceScore { stored.config["relevanceScore"] = relevanceScore }
         activities[activityId] = stored
         lock.unlock()
@@ -255,8 +262,9 @@ public final class CapgoLiveActivityManager {
 
         lock.lock()
         activities.removeValue(forKey: activityId)
+        let remainingIds = Set(activities.keys)
         lock.unlock()
-        pruneMetadata(keeping: Set(activities.keys))
+        pruneMetadata(keeping: remainingIds)
     }
 
     public func allActivities() -> [[String: Any]] {

@@ -30,6 +30,10 @@ let package = Package(
         .testTarget(
             name: "CapgoLiveActivitiesPluginTests",
             dependencies: ["CapgoLiveActivitiesPlugin"],
-            path: "ios/Tests/CapgoLiveActivitiesPluginTests")
+            path: "ios/Tests/CapgoLiveActivitiesPluginTests"),
+        .testTarget(
+            name: "CapgoLiveActivitiesSharedTests",
+            dependencies: ["CapgoLiveActivitiesShared"],
+            path: "ios/Tests/CapgoLiveActivitiesSharedTests")
     ]
 )
