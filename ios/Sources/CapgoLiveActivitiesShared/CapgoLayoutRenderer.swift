@@ -145,11 +145,7 @@ public enum CapgoLayoutRenderer {
             switch source {
             case "sfSymbol":
                 if let tint {
-                    let image = Image(systemName: value).foregroundColor(tint)
-                    if contentMode == "fill" {
-                        return AnyView(image.resizable().scaledToFill().frame(width: width, height: height).clipped())
-                    }
-                    return AnyView(image.resizable().scaledToFit().frame(width: width, height: height))
+                    return AnyView(scaled(Image(systemName: value)).foregroundColor(tint))
                 }
                 return scaled(Image(systemName: value))
             case "saved":
