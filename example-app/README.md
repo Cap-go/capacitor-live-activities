@@ -19,7 +19,13 @@ Capacitor example app for the local `@capgo/capacitor-live-activities` plugin (`
 
 ## Run in the browser (web shell only)
 
+From the repository root, build the plugin once so `dist/` exists for the `file:..` dependency:
+
 ```bash
+cd ..
+bun install
+bun run build
+cd example-app
 bun install
 bun run start
 ```
@@ -28,9 +34,13 @@ Live Activities APIs are unavailable on web; the UI still loads for layout check
 
 ## Run on iOS (device or simulator)
 
-From this `example-app` folder:
+From the repository root:
 
 ```bash
+cd ..
+bun install
+bun run build
+cd example-app
 bun install
 bun run build
 bunx cap sync ios
@@ -66,7 +76,13 @@ When ActivityKit push updates are enabled for an activity, `getAllActivities()` 
 
 Timer sequence APIs work on Android. Generic `startActivity` Live Activities are iOS-only.
 
+From the repository root:
+
 ```bash
+cd ..
+bun install
+bun run build
+cd example-app
 bun run build
 bunx cap sync android
 bunx cap open android

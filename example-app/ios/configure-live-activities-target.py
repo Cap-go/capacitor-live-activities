@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import pathlib
-import re
 import uuid
 
 PBXPROJ = pathlib.Path(__file__).resolve().parent / "App" / "App.xcodeproj" / "project.pbxproj"
@@ -12,6 +11,24 @@ PBXPROJ = pathlib.Path(__file__).resolve().parent / "App" / "App.xcodeproj" / "p
 
 def uid() -> str:
     return uuid.uuid4().hex[:24].upper()
+
+
+def replace_once(text: str, old: str, new: str, *, label: str) -> str:
+    if old not in text:
+        raise SystemExit(f"configure-live-activities-target: anchor not found ({label})")
+    updated = text.replace(old, new, 1)
+    if updated == text:
+        raise SystemExit(f"configure-live-activities-target: replace failed ({label})")
+    return updated
+
+
+def replace_n(text: str, old: str, new: str, count: int, *, label: str) -> str:
+    found = text.count(old)
+    if found < count:
+        raise SystemExit(
+            f"configure-live-activities-target: expected {count} occurrence(s) of {label}, found {found}"
+        )
+    return text.replace(old, new, count)
 
 
 def main() -> None:
@@ -27,35 +44,46 @@ def main() -> None:
         "pkg_ref", "pkg_product", "pkg_framework_build",
     ]}
 
-    text = text.replace("IPHONEOS_DEPLOYMENT_TARGET = 15.0;", "IPHONEOS_DEPLOYMENT_TARGET = 16.1;")
+    deployment_old = "IPHONEOS_DEPLOYMENT_TARGET = 15.0;"
+    deployment_new = "IPHONEOS_DEPLOYMENT_TARGET = 16.1;"
+    deployment_count = text.count(deployment_old)
+    if deployment_count:
+        text = replace_n(
+            text,
+            deployment_old,
+            deployment_new,
+            deployment_count,
+            label="IPHONEOS_DEPLOYMENT_TARGET",
+        )
 
-    app_target = "504EC3031FED79650016851F"
     app_frameworks = "504EC3011FED79650016851F"
     products_group = "504EC3051FED79650016851F"
     root_group = "504EC2FB1FED79650016851F"
     project = "504EC2FC1FED79650016851F"
     package_refs = "packageReferences = ("
     targets_list = "targets = ("
-    app_config_debug = "504EC3171FED79650016851F"
-    app_config_release = "504EC3181FED79650016851F"
 
     build_file_section = f"""\t\t{ids['bundle_build']} /* LiveActivitiesBundle.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {ids['bundle_swift']} /* LiveActivitiesBundle.swift */; }};
 \t\t{ids['widget_build']} /* CapgoLiveActivityWidget.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {ids['widget_swift']} /* CapgoLiveActivityWidget.swift */; }};
 \t\t{ids['embed_build']} /* LiveActivitiesExtension.appex in Embed Foundation Extensions */ = {{isa = PBXBuildFile; fileRef = {ids['appex']} /* LiveActivitiesExtension.appex */; settings = {{ATTRIBUTES = (RemoveHeadersOnCopy, ); }}; }};
 \t\t{ids['pkg_framework_build']} /* CapgoLiveActivitiesShared in Frameworks */ = {{isa = PBXBuildFile; productRef = {ids['pkg_product']} /* CapgoLiveActivitiesShared */; }};
 """
-    text = text.replace("/* End PBXBuildFile section */", build_file_section + "/* End PBXBuildFile section */")
+    text = replace_once(
+        text,
+        "/* End PBXBuildFile section */",
+        build_file_section + "/* End PBXBuildFile section */",
+        label="PBXBuildFile section end",
+    )
 
     file_ref_section = f"""\t\t{ids['appex']} /* LiveActivitiesExtension.appex */ = {{isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LiveActivitiesExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; }};
 \t\t{ids['bundle_swift']} /* LiveActivitiesBundle.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivitiesBundle.swift; sourceTree = "<group>"; }};
 \t\t{ids['widget_swift']} /* CapgoLiveActivityWidget.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapgoLiveActivityWidget.swift; sourceTree = "<group>"; }};
 """
-    text = text.replace("/* End PBXFileReference section */", file_ref_section + "/* End PBXFileReference section */")
-
-    frameworks_insert = f"\t\t\t\t{ids['pkg_framework_build']} /* CapgoLiveActivitiesShared in Frameworks */,\n"
-    text = text.replace(
-        f"\t\t{app_frameworks} /* Frameworks */ = {{\n\t\t\tisa = PBXFrameworksBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n",
-        f"\t\t{app_frameworks} /* Frameworks */ = {{\n\t\t\tisa = PBXFrameworksBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n",
+    text = replace_once(
+        text,
+        "/* End PBXFileReference section */",
+        file_ref_section + "/* End PBXFileReference section */",
+        label="PBXFileReference section end",
     )
 
     ext_frameworks = f"""\t\t{ids['frameworks']} /* Frameworks */ = {{
@@ -78,15 +106,24 @@ def main() -> None:
 \t\t\tsourceTree = "<group>";
 \t\t}};
 """
-    text = text.replace(
+    text = replace_once(
+        text,
         f"\t\t{root_group} = {{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (",
         f"\t\t{root_group} = {{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n\t\t\t\t{ids['group']} /* LiveActivities */,",
+        label="root PBXGroup children",
     )
-    text = text.replace("/* End PBXGroup section */", group_section + "/* End PBXGroup section */")
+    text = replace_once(
+        text,
+        "/* End PBXGroup section */",
+        group_section + "/* End PBXGroup section */",
+        label="PBXGroup section end",
+    )
 
-    text = text.replace(
+    text = replace_once(
+        text,
         f"\t\t{products_group} = {{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n\t\t\t\t504EC3041FED79650016851F /* App.app */,",
         f"\t\t{products_group} = {{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n\t\t\t\t504EC3041FED79650016851F /* App.app */,\n\t\t\t\t{ids['appex']} /* LiveActivitiesExtension.appex */,",
+        label="products PBXGroup children",
     )
 
     native_target = f"""\t\t{ids['target']} /* LiveActivitiesExtension */ = {{
@@ -110,9 +147,15 @@ def main() -> None:
 \t\t\tproductType = "com.apple.product-type.app-extension";
 \t\t}};
 """
-    text = text.replace("/* End PBXNativeTarget section */", native_target + "/* End PBXNativeTarget section */")
+    text = replace_once(
+        text,
+        "/* End PBXNativeTarget section */",
+        native_target + "/* End PBXNativeTarget section */",
+        label="PBXNativeTarget section end",
+    )
 
-    text = text.replace(
+    text = replace_once(
+        text,
         """\t\t504EC3031FED79650016851F /* App */ = {
 \t\t\tisa = PBXNativeTarget;
 \t\t\tbuildConfigurationList = 504EC3161FED79650016851F /* Build configuration list for PBXNativeTarget "App" */;
@@ -143,16 +186,21 @@ def main() -> None:
 \t\t\t);
 \t\t\tname = App;
 """,
+        label="App PBXNativeTarget embed phase",
     )
 
-    text = text.replace(
+    text = replace_once(
+        text,
         targets_list + "\n\t\t\t\t504EC3031FED79650016851F /* App */,\n\t\t\t);",
         targets_list + f"\n\t\t\t\t504EC3031FED79650016851F /* App */,\n\t\t\t\t{ids['target']} /* LiveActivitiesExtension */,\n\t\t\t);",
+        label="PBXProject targets list",
     )
 
-    text = text.replace(
+    text = replace_once(
+        text,
         package_refs + "\n\t\t\t\tD4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference \"CapApp-SPM\" */,\n\t\t\t);",
         package_refs + f"\n\t\t\t\tD4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference \"CapApp-SPM\" */,\n\t\t\t\t{ids['pkg_ref']} /* XCLocalSwiftPackageReference \"CapgoCapacitorLiveActivities\" */,\n\t\t\t);",
+        label="XCLocalSwiftPackageReference list",
     )
 
     phases = f"""
@@ -188,7 +236,12 @@ def main() -> None:
 \t\t}};
 /* End PBXTargetDependency section */
 """
-    text = text.replace("/* Begin PBXResourcesBuildPhase section */", phases + "/* Begin PBXResourcesBuildPhase section */")
+    text = replace_once(
+        text,
+        "/* Begin PBXResourcesBuildPhase section */",
+        phases + "/* Begin PBXResourcesBuildPhase section */",
+        label="PBXResourcesBuildPhase section start",
+    )
 
     ext_resources = f"""\t\t{ids['resources']} /* Resources */ = {{
 \t\t\tisa = PBXResourcesBuildPhase;
@@ -208,9 +261,24 @@ def main() -> None:
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t}};
 """
-    text = text.replace("/* End PBXResourcesBuildPhase section */", ext_resources + "/* End PBXResourcesBuildPhase section */")
-    text = text.replace("/* End PBXSourcesBuildPhase section */", ext_sources + "/* End PBXSourcesBuildPhase section */")
-    text = text.replace("/* End PBXFrameworksBuildPhase section */", ext_frameworks + "/* End PBXFrameworksBuildPhase section */")
+    text = replace_once(
+        text,
+        "/* End PBXResourcesBuildPhase section */",
+        ext_resources + "/* End PBXResourcesBuildPhase section */",
+        label="PBXResourcesBuildPhase section end",
+    )
+    text = replace_once(
+        text,
+        "/* End PBXSourcesBuildPhase section */",
+        ext_sources + "/* End PBXSourcesBuildPhase section */",
+        label="PBXSourcesBuildPhase section end",
+    )
+    text = replace_once(
+        text,
+        "/* End PBXFrameworksBuildPhase section */",
+        ext_frameworks + "/* End PBXFrameworksBuildPhase section */",
+        label="PBXFrameworksBuildPhase section end",
+    )
 
     configs = f"""\t\t{ids['debug_cfg']} /* Debug */ = {{
 \t\t\tisa = XCBuildConfiguration;
@@ -266,14 +334,24 @@ def main() -> None:
 \t\t\tdefaultConfigurationName = Release;
 \t\t}};
 """
-    text = text.replace("/* End XCBuildConfiguration section */", configs + "/* End XCBuildConfiguration section */")
+    text = replace_once(
+        text,
+        "/* End XCBuildConfiguration section */",
+        configs + "/* End XCBuildConfiguration section */",
+        label="XCBuildConfiguration section end",
+    )
 
     pkg_sections = f"""\t\t{ids['pkg_ref']} /* XCLocalSwiftPackageReference "CapgoCapacitorLiveActivities" */ = {{
 \t\t\tisa = XCLocalSwiftPackageReference;
 \t\t\trelativePath = "../../node_modules/@capgo/capacitor-live-activities";
 \t\t}};
 """
-    text = text.replace("/* End XCLocalSwiftPackageReference section */", pkg_sections + "/* End XCLocalSwiftPackageReference section */")
+    text = replace_once(
+        text,
+        "/* End XCLocalSwiftPackageReference section */",
+        pkg_sections + "/* End XCLocalSwiftPackageReference section */",
+        label="XCLocalSwiftPackageReference section end",
+    )
 
     product_dep = f"""\t\t{ids['pkg_product']} /* CapgoLiveActivitiesShared */ = {{
 \t\t\tisa = XCSwiftPackageProductDependency;
@@ -281,26 +359,31 @@ def main() -> None:
 \t\t\tproductName = CapgoLiveActivitiesShared;
 \t\t}};
 """
-    text = text.replace("/* End XCSwiftPackageProductDependency section */", product_dep + "/* End XCSwiftPackageProductDependency section */")
+    text = replace_once(
+        text,
+        "/* End XCSwiftPackageProductDependency section */",
+        product_dep + "/* End XCSwiftPackageProductDependency section */",
+        label="XCSwiftPackageProductDependency section end",
+    )
 
-    text = text.replace(
-        f"\t\t\tbuildSettings = {{\n\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;\n\t\t\t\tCODE_SIGN_STYLE = Automatic;",
-        f"\t\t\tbuildSettings = {{\n\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = App/App.entitlements;\n\t\t\t\tCODE_SIGN_STYLE = Automatic;",
+    entitlements_anchor = (
+        "\t\t\tbuildSettings = {\n"
+        "\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;\n"
+        "\t\t\t\tCODE_SIGN_STYLE = Automatic;"
+    )
+    entitlements_replacement = (
+        "\t\t\tbuildSettings = {\n"
+        "\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;\n"
+        "\t\t\t\tCODE_SIGN_ENTITLEMENTS = App/App.entitlements;\n"
+        "\t\t\t\tCODE_SIGN_STYLE = Automatic;"
+    )
+    text = replace_n(
+        text,
+        entitlements_anchor,
+        entitlements_replacement,
         2,
+        label="App target CODE_SIGN_ENTITLEMENTS",
     )
-
-    text = text.replace(
-        "504EC3171FED79650016851F /* Debug */ = {\n\t\t\tisa = XCBuildConfiguration;\n\t\t\tbaseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;\n\t\t\tbuildSettings = {\n\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = App/App.entitlements;\n\t\t\t\tCODE_SIGN_STYLE = Automatic;\n\t\t\t\tCURRENT_PROJECT_VERSION = 1;\n\t\t\t\tINFOPLIST_FILE = App/Info.plist;\n\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 15.0;",
-        "504EC3171FED79650016851F /* Debug */ = {\n\t\t\tisa = XCBuildConfiguration;\n\t\t\tbaseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;\n\t\t\tbuildSettings = {\n\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = App/App.entitlements;\n\t\t\t\tCODE_SIGN_STYLE = Automatic;\n\t\t\t\tCURRENT_PROJECT_VERSION = 1;\n\t\t\t\tINFOPLIST_FILE = App/Info.plist;\n\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 16.1;",
-    )
-    text = text.replace(
-        "504EC3181FED79650016851F /* Release */ = {\n\t\t\tisa = XCBuildConfiguration;\n\t\t\tbuildSettings = {\n\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = App/App.entitlements;\n\t\t\t\tCODE_SIGN_STYLE = Automatic;\n\t\t\t\tCURRENT_PROJECT_VERSION = 1;\n\t\t\t\tINFOPLIST_FILE = App/Info.plist;\n\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 15.0;",
-        "504EC3181FED79650016851F /* Release */ = {\n\t\t\tisa = XCBuildConfiguration;\n\t\t\tbuildSettings = {\n\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = App/App.entitlements;\n\t\t\t\tCODE_SIGN_STYLE = Automatic;\n\t\t\t\tCURRENT_PROJECT_VERSION = 1;\n\t\t\t\tINFOPLIST_FILE = App/Info.plist;\n\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 16.1;",
-    )
-
-    # Fix duplicate proxy id: dependency used for both proxy and dependency - need separate IDs
-    if text.count(ids["dependency"]) > 4:
-        pass
 
     PBXPROJ.write_text(text)
     print("Updated", PBXPROJ)

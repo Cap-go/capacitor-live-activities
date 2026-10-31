@@ -179,6 +179,8 @@ public final class CapgoLiveActivityManager {
             )
         }
 
+        let alert = try alertConfiguration(from: alertConfig)
+
         hydrateFromActivityKit()
         lock.lock()
         guard var stored = activities[activityId],
@@ -202,7 +204,6 @@ public final class CapgoLiveActivityManager {
         let relevance = normalizedRelevance(effectiveRelevance)
 
         let nextState = CapgoLiveActivityAttributes.ContentState(data: contentData)
-        let alert = try alertConfiguration(from: alertConfig)
         if #available(iOS 16.2, *) {
             let content: ActivityContent<CapgoLiveActivityAttributes.ContentState>
             if let relevance {
