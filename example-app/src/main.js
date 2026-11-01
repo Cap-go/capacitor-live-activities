@@ -9,6 +9,7 @@ const support = document.getElementById('support');
 const count = document.getElementById('count');
 const pushToken = document.getElementById('push-token');
 const activityIdLabel = document.getElementById('activity-id');
+const activityStatusAnnouncer = document.getElementById('activity-status-announcer');
 
 const actionButtons = ['start', 'update', 'end', 'refresh'].map((id) => document.getElementById(id));
 let busy = false;
@@ -52,6 +53,12 @@ function baseData() {
   };
 }
 
+function announceActivityStatus(id, hasPushToken) {
+  const idPart = id ? `Selected activity ${id}` : 'No active activity';
+  const tokenPart = hasPushToken ? 'Push token available' : 'Push token not available yet';
+  activityStatusAnnouncer.textContent = `${idPart}. ${tokenPart}.`;
+}
+
 async function refresh() {
   const supported = await CapgoLiveActivities.areActivitiesSupported();
   support.textContent = supported.supported ? 'Supported' : `Not supported: ${supported.reason ?? ''}`;
@@ -76,7 +83,9 @@ async function refresh() {
   }
 
   // Show the push token of the selected activity only, so it always matches the displayed ID.
-  pushToken.textContent = selected?.pushToken ?? 'Not available yet';
+  const tokenValue = selected?.pushToken ?? null;
+  pushToken.textContent = tokenValue ?? 'Not available yet';
+  announceActivityStatus(activityId, Boolean(tokenValue));
 
   setOutput(activities);
 }

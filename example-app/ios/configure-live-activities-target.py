@@ -7,7 +7,7 @@ import pathlib
 import uuid
 
 PBXPROJ = pathlib.Path(__file__).resolve().parent / "App" / "App.xcodeproj" / "project.pbxproj"
-APP_INFO_PLIST = PBXPROJ.parent.parent / "Info.plist"
+APP_INFO_PLIST = PBXPROJ.parent / "App" / "Info.plist"
 CAPAPP_PACKAGE = PBXPROJ.parent.parent / "CapApp-SPM" / "Package.swift"
 
 
@@ -74,6 +74,8 @@ def main() -> None:
     text = PBXPROJ.read_text()
     if "LiveActivitiesExtension" in text:
         print("LiveActivities extension already configured")
+        ensure_live_activities_info_plist()
+        ensure_capapp_ios_platform()
         return
 
     ids = {name: uid() for name in [
