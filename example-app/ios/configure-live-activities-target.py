@@ -7,7 +7,13 @@ import pathlib
 import uuid
 
 PBXPROJ = pathlib.Path(__file__).resolve().parent / "App" / "App.xcodeproj" / "project.pbxproj"
-APP_INFO_PLIST = PBXPROJ.parent / "App" / "Info.plist"
+
+
+def app_info_plist_path(pbxproj: pathlib.Path) -> pathlib.Path:
+    return pbxproj.parent.parent / "App" / "Info.plist"
+
+
+APP_INFO_PLIST = app_info_plist_path(PBXPROJ)
 CAPAPP_PACKAGE = PBXPROJ.parent.parent / "CapApp-SPM" / "Package.swift"
 
 

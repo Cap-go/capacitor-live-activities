@@ -805,16 +805,16 @@ Text layout element
 
 Image layout element
 
-| Prop              | Type                                                                  | Description                                                                    |
-| ----------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| **`type`**        | <code>'image'</code>                                                  |                                                                                |
-| **`source`**      | <code>'url' \| 'sfSymbol' \| 'asset' \| 'base64' \| 'saved'</code>    | Image source type                                                              |
-| **`value`**       | <code>string</code>                                                   | Image value (URL, symbol name, asset name, base64 string, or saved image name) |
-| **`width`**       | <code>number</code>                                                   | Image width                                                                    |
-| **`height`**      | <code>number</code>                                                   | Image height                                                                   |
-| **`contentMode`** | <code>'fit' \| 'fill'</code>                                          | Content mode                                                                   |
-| **`tintColor`**   | <code><a href="#colorstring">ColorString</a></code>                   | Tint color for SF Symbols                                                      |
-| **`properties`**  | <code><a href="#baselayoutproperties">BaseLayoutProperties</a></code> | Element properties                                                             |
+| Prop              | Type                                                                  | Description                                                                                                               |
+| ----------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **`type`**        | <code>'image'</code>                                                  |                                                                                                                           |
+| **`source`**      | <code>'url' \| 'sfSymbol' \| 'asset' \| 'base64' \| 'saved'</code>    | Image source type. Remote `url` images are not supported in Live Activity snapshots; download in the app and use `saved`. |
+| **`value`**       | <code>string</code>                                                   | Image value (URL, symbol name, asset name, base64 string, or saved image name)                                            |
+| **`width`**       | <code>number</code>                                                   | Image width                                                                                                               |
+| **`height`**      | <code>number</code>                                                   | Image height                                                                                                              |
+| **`contentMode`** | <code>'fit' \| 'fill'</code>                                          | Content mode                                                                                                              |
+| **`tintColor`**   | <code><a href="#colorstring">ColorString</a></code>                   | Tint color for SF Symbols                                                                                                 |
+| **`properties`**  | <code><a href="#baselayoutproperties">BaseLayoutProperties</a></code> | Element properties                                                                                                        |
 
 
 #### LayoutElementProgress
@@ -958,13 +958,13 @@ Result of getAllActivities
 
 Activity info returned from getAllActivities
 
-| Prop             | Type                                                             | Description                                                                                                                                                       | Since |
-| ---------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| **`activityId`** | <code>string</code>                                              | Activity ID                                                                                                                                                       |       |
-| **`state`**      | <code>'active' \| 'ended' \| 'dismissed' \| 'stale'</code>       | Current activity state                                                                                                                                            |       |
-| **`startDate`**  | <code>number</code>                                              | Activity start date in milliseconds since epoch. Persisted across app restarts; `0` means unknown (activity started by a plugin version that did not persist it). |       |
-| **`data`**       | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code> | Current data                                                                                                                                                      |       |
-| **`pushToken`**  | <code>string</code>                                              | ActivityKit push token (hex), when push updates are enabled for the activity. Use this token with APNs liveactivity push type for server-driven updates.          | 1.3.0 |
+| Prop             | Type                                                             | Description                                                                                                                                                                                                                                                                                 | Since |
+| ---------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| **`activityId`** | <code>string</code>                                              | Activity ID                                                                                                                                                                                                                                                                                 |       |
+| **`state`**      | <code>'active' \| 'ended' \| 'dismissed' \| 'stale'</code>       | Current activity state                                                                                                                                                                                                                                                                      |       |
+| **`startDate`**  | <code>number</code>                                              | Activity start date in milliseconds since epoch. Persisted across app restarts; `0` means unknown (activity started by a plugin version that did not persist it).                                                                                                                           |       |
+| **`data`**       | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code> | Current data                                                                                                                                                                                                                                                                                |       |
+| **`pushToken`**  | <code>string</code>                                              | ActivityKit push token (hex), when push updates are enabled for the activity. Use this token with APNs liveactivity push type for server-driven updates. The `content-state` of each push payload must match the native `ContentState` shape, for example `{ "data": { "key": "value" } }`. | 1.3.0 |
 
 
 #### SaveImageResult

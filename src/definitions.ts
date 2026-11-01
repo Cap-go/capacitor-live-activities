@@ -83,7 +83,10 @@ export interface LayoutElementText {
  */
 export interface LayoutElementImage {
   type: 'image';
-  /** Image source type */
+  /**
+   * Image source type.
+   * Remote `url` images are not supported in Live Activity snapshots; download in the app and use `saved`.
+   */
   source: 'url' | 'sfSymbol' | 'asset' | 'base64' | 'saved';
   /** Image value (URL, symbol name, asset name, base64 string, or saved image name) */
   value: string;
@@ -343,6 +346,8 @@ export interface ActivityInfo {
   /**
    * ActivityKit push token (hex), when push updates are enabled for the activity.
    * Use this token with APNs liveactivity push type for server-driven updates.
+   * The `content-state` of each push payload must match the native `ContentState` shape,
+   * for example `{ "data": { "key": "value" } }`.
    *
    * @since 1.3.0
    */

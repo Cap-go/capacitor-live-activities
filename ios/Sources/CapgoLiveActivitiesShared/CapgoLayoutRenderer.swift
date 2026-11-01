@@ -160,18 +160,8 @@ public enum CapgoLayoutRenderer {
                 }
                 return AnyView(Image(systemName: "photo").frame(width: width, height: height))
             case "url":
-                if let url = URL(string: value) {
-                    return AnyView(
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .success(let image):
-                                scaled(image)
-                            default:
-                                Image(systemName: "photo").frame(width: width, height: height)
-                            }
-                        }
-                    )
-                }
+                // Live Activities cannot load remote images. Download the image in the app
+                // and render it with source "saved" instead.
                 return AnyView(Image(systemName: "photo").frame(width: width, height: height))
             case "asset":
                 return scaled(Image(value))

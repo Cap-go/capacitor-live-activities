@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { CapgoLiveActivities } from '@capgo/capacitor-live-activities';
 import { createDeliveryLayout, deliveryStages } from './activityLayouts.js';
+import { filterSelectableActivities } from './activitySelection.js';
 
 const output = document.getElementById('output');
 const support = document.getElementById('support');
@@ -64,7 +65,7 @@ async function refresh() {
   support.textContent = supported.supported ? 'Supported' : `Not supported: ${supported.reason ?? ''}`;
 
   const activities = await CapgoLiveActivities.getAllActivities();
-  const active = activities.activities?.filter((item) => item.state === 'active') ?? [];
+  const active = filterSelectableActivities(activities.activities);
   count.textContent = String(active.length);
 
   // Keep the selection on an active activity; replace a stale or missing selection.
