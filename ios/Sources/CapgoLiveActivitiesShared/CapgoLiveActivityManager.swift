@@ -261,10 +261,12 @@ public final class CapgoLiveActivityManager {
         }
 
         lock.lock()
-        activities.removeValue(forKey: activityId)
-        let remainingIds = Set(activities.keys)
+        if var stored = activities[activityId] {
+            stored.config["state"] = "ended"
+            stored.config["data"] = data ?? fallbackData
+            activities[activityId] = stored
+        }
         lock.unlock()
-        pruneMetadata(keeping: remainingIds)
     }
 
     public func allActivities() -> [[String: Any]] {
@@ -362,6 +364,10 @@ public final class CapgoLiveActivityManager {
             lock.unlock()
             observePushTokens(for: activity, activityId: activityId)
         }
+        lock.lock()
+        activities = activities.filter { liveIds.contains($0.key) }
+        observedPushTokenIds.formIntersection(liveIds)
+        lock.unlock()
         pruneMetadata(keeping: liveIds)
     }
 

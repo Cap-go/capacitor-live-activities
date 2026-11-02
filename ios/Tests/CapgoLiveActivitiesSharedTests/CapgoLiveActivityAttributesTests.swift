@@ -8,6 +8,6 @@ final class CapgoLiveActivityAttributesTests: XCTestCase {
         )
         let data = try JSONEncoder().encode(state)
         let object = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        XCTAssertEqual(object?["data"] as? [String: Any], ["status": "Delivered"])
+        XCTAssertEqual(object?["data"] as? [String: String], ["status": "Delivered"])
     }
 }

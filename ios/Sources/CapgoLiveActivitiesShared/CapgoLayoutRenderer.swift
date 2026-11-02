@@ -303,6 +303,21 @@ public enum CapgoLayoutRenderer {
         var result = AnyView(view)
         if let padding = props["padding"] as? Double {
             result = AnyView(result.padding(padding))
+        } else if let padding = props["padding"] as? [String: Any] {
+            result = AnyView(result.padding(EdgeInsets(
+                top: CGFloat(padding["top"] as? Double ?? 0),
+                leading: CGFloat(padding["leading"] as? Double ?? 0),
+                bottom: CGFloat(padding["bottom"] as? Double ?? 0),
+                trailing: CGFloat(padding["trailing"] as? Double ?? 0)
+            )))
+        }
+        if props["width"] as? String == "infinity" {
+            result = AnyView(result.frame(maxWidth: .infinity))
+        } else if let width = props["width"] as? Double {
+            result = AnyView(result.frame(width: width))
+        }
+        if let height = props["height"] as? Double {
+            result = AnyView(result.frame(height: height))
         }
         if let background = props["backgroundColor"] as? String, let color = colorFrom(background) {
             result = AnyView(result.background(color))
