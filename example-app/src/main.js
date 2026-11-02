@@ -129,7 +129,12 @@ document.getElementById('update').addEventListener('click', () => {
       return;
     }
     try {
-      const nextStageIndex = Math.min(stageIndex + 1, deliveryStages.length - 1);
+      const finalStageIndex = deliveryStages.length - 1;
+      if (stageIndex >= finalStageIndex) {
+        setOutput('Delivery already at final stage.');
+        return;
+      }
+      const nextStageIndex = stageIndex + 1;
       const stage = deliveryStages[nextStageIndex];
       await CapgoLiveActivities.updateActivity({
         activityId,

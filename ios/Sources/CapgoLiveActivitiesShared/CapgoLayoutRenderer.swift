@@ -196,7 +196,8 @@ public enum CapgoLayoutRenderer {
         let weight = fontWeight(element["fontWeight"] as? String)
         let style = element["style"] as? String ?? "timer"
         let pausesOnReach = element["pausesOnReach"] as? Bool ?? false
-        let reached = date <= Date()
+        let now = Date()
+        let reached = date <= now
 
         let timerText: Text = {
             if pausesOnReach && reached {
@@ -209,7 +210,7 @@ public enum CapgoLayoutRenderer {
                 if reached {
                     return Text(date, format: .dateTime.hour().minute().second())
                 }
-                return Text(timerInterval: Date()...date, countsDown: true)
+                return Text(timerInterval: now...date, countsDown: true)
             default:
                 return Text(date, style: .timer)
             }
