@@ -165,7 +165,7 @@ document.getElementById('end').addEventListener('click', () => {
       return;
     }
     try {
-      const stage = deliveryStages[deliveryStages.length - 1];
+      const stage = deliveryStages[stageIndex];
       await CapgoLiveActivities.endActivity({
         activityId,
         data: {

@@ -273,7 +273,15 @@ public final class CapgoLiveActivityManager {
         hydrateFromActivityKit()
         lock.lock()
         defer { lock.unlock() }
-        return activities.map { activityId, stored in
+        let sorted = activities.sorted { lhs, rhs in
+            let leftStart = (lhs.value.config["startDate"] as? NSNumber)?.doubleValue ?? 0
+            let rightStart = (rhs.value.config["startDate"] as? NSNumber)?.doubleValue ?? 0
+            if leftStart != rightStart {
+                return leftStart < rightStart
+            }
+            return lhs.key < rhs.key
+        }
+        return sorted.map { activityId, stored in
             var state = stored.config["state"] as? String ?? "active"
             if let activity = stored.activity as? Activity<CapgoLiveActivityAttributes> {
                 state = stateString(activity.activityState)

@@ -212,6 +212,9 @@ public enum CapgoLayoutRenderer {
                 }
                 return Text(timerInterval: now...date, countsDown: true)
             default:
+                if pausesOnReach {
+                    return Text(timerInterval: now...date, pauseTime: date, countsDown: true)
+                }
                 return Text(date, style: .timer)
             }
         }()
