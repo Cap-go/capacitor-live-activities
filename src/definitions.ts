@@ -351,7 +351,7 @@ export interface ActivityInfo {
    *
    * This field may be absent right after `startActivity()` even when push updates are enabled;
    * ActivityKit delivers the token asynchronously. The token can also change over the activity
-   * lifetime. Poll `getAllActivities()` (or listen for updates) and sync any new token to your
+   * lifetime. Poll `getAllActivities()` periodically and sync any new token to your
    * server before sending push updates.
    *
    * @since 1.3.0
