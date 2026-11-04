@@ -3,7 +3,29 @@ import { Capacitor } from '@capacitor/core';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { CapgoLiveActivities } from '@capgo/capacitor-live-activities';
 import { createDeliveryLayout, deliveryStages } from './activityLayouts.js';
-import { filterSelectableActivities } from './activitySelection.js';
+import { filterSelectableActivities, pickDefaultActivity } from './activitySelection.js';
+
+const SELECTED_ACTIVITY_STORAGE_KEY = 'capgo.liveActivities.demo.selectedActivityId';
+
+function readPersistedActivityId() {
+  try {
+    return localStorage.getItem(SELECTED_ACTIVITY_STORAGE_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
+function persistActivityId(id) {
+  try {
+    if (id) {
+      localStorage.setItem(SELECTED_ACTIVITY_STORAGE_KEY, id);
+    } else {
+      localStorage.removeItem(SELECTED_ACTIVITY_STORAGE_KEY);
+    }
+  } catch {
+    // ignore quota or private mode
+  }
+}
 
 const output = document.getElementById('output');
 const support = document.getElementById('support');
@@ -14,7 +36,7 @@ const activityStatusAnnouncer = document.getElementById('activity-status-announc
 
 const actionButtons = ['start', 'update', 'end', 'refresh'].map((id) => document.getElementById(id));
 let busy = false;
-let activityId = null;
+let activityId = readPersistedActivityId();
 let stageIndex = 0;
 let stageRestored = false;
 
@@ -68,16 +90,18 @@ async function refresh() {
   const active = filterSelectableActivities(activities.activities);
   count.textContent = String(active.length);
 
-  // Keep the selection on an active activity; replace a stale or missing selection.
-  let selected = active.find((item) => item.activityId === activityId);
+  // Keep the selection on an active activity; restore persisted ID or pick the newest start.
+  const preferredId = activityId ?? readPersistedActivityId();
+  let selected = preferredId ? active.find((item) => item.activityId === preferredId) : null;
   if (!selected && active.length > 0) {
-    selected = active[0];
+    selected = pickDefaultActivity(active, preferredId);
     stageIndex = stageIndexFor(selected);
   } else if (selected && (!stageRestored || stageIndexFor(selected) !== stageIndex)) {
     stageIndex = stageIndexFor(selected);
   }
   stageRestored = true;
   activityId = selected?.activityId ?? null;
+  persistActivityId(activityId);
   activityIdLabel.textContent = activityId ?? 'None';
   if (!selected) {
     stageIndex = 0;
@@ -112,6 +136,7 @@ document.getElementById('start').addEventListener('click', () => {
         data: baseData(),
       });
       activityId = result.activityId;
+      persistActivityId(activityId);
       stageIndex = 0;
       activityIdLabel.textContent = activityId;
       setOutput(result);
@@ -177,6 +202,7 @@ document.getElementById('end').addEventListener('click', () => {
         dismissalPolicy: 'default',
       });
       activityId = null;
+      persistActivityId(null);
       stageIndex = 0;
       activityIdLabel.textContent = 'None';
       setOutput({ ended: true });
