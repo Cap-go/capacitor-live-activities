@@ -20,6 +20,6 @@ DESTINATION="platform=iOS Simulator,name=${SIMULATOR_NAME}"
 echo "Running Swift tests with destination: ${DESTINATION}"
 
 xcodebuild test \
-  -scheme CapgoCapacitorLiveActivities \
+  -scheme CapgoCapacitorLiveActivities-Package \
   -destination "${DESTINATION}" \
   CODE_SIGNING_ALLOWED=NO
