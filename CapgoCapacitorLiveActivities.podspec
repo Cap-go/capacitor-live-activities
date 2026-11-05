@@ -10,8 +10,18 @@ Pod::Spec.new do |s|
   s.homepage = package['repository']['url']
   s.author = package['author']
   s.source = { :git => package['repository']['url'], :tag => s.version.to_s }
-  s.source_files = 'ios/Sources/**/*.{swift,h,m,c,cc,mm,cpp}'
   s.ios.deployment_target = '16.1'
-  s.dependency 'Capacitor'
   s.swift_version = '5.1'
+  s.default_subspec = 'Plugin'
+
+  s.subspec 'Shared' do |shared|
+    shared.source_files = 'ios/Sources/CapgoLiveActivitiesShared/**/*.{swift,h,m,c,cc,mm,cpp}'
+    shared.module_name = 'CapgoLiveActivitiesShared'
+  end
+
+  s.subspec 'Plugin' do |plugin|
+    plugin.source_files = 'ios/Sources/CapgoLiveActivitiesPlugin/**/*.{swift,h,m,c,cc,mm,cpp}'
+    plugin.dependency 'CapgoCapacitorLiveActivities/Shared'
+    plugin.dependency 'Capacitor'
+  end
 end

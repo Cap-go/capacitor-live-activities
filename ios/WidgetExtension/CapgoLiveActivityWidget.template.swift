@@ -7,16 +7,19 @@ struct CapgoLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: CapgoLiveActivityAttributes.self) { context in
             let groupId = appGroupIdentifier()
+            let behavior = CapgoActivityBehavior.parse(json: context.attributes.behaviorJSON)
             CapgoLayoutRenderer.lockScreenView(
                 layoutJSON: context.attributes.layoutJSON,
                 data: context.state.data,
                 appGroupId: groupId
             )
             .padding(12)
-            .activityBackgroundTint(Color.black.opacity(0.2))
-            .widgetURL(widgetURL(from: context.attributes.behaviorJSON))
+            .activityBackgroundTint(behavior.backgroundTint ?? Color.black.opacity(0.2))
+            .applySystemActionForegroundColor(behavior.systemActionForegroundColor)
+            .widgetURL(behavior.widgetURL)
         } dynamicIsland: { context in
             let groupId = appGroupIdentifier()
+            let behavior = CapgoActivityBehavior.parse(json: context.attributes.behaviorJSON)
             let island = parseIsland(context.attributes.dynamicIslandLayoutJSON)
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
@@ -66,23 +69,15 @@ struct CapgoLiveActivityWidget: Widget {
                     appGroupId: groupId
                 )
             }
-            .widgetURL(widgetURL(from: context.attributes.behaviorJSON))
+            .applyKeylineTint(behavior.keyLineTint)
+            .applySystemActionForegroundColor(behavior.systemActionForegroundColor)
+            .widgetURL(behavior.widgetURL)
         }
     }
 
     private func appGroupIdentifier() -> String? {
         // Must match group.YOUR_BUNDLE_ID.liveactivities from step 2
         "group.YOUR_BUNDLE_ID.liveactivities"
-    }
-
-    private func widgetURL(from behaviorJSON: String?) -> URL? {
-        guard let behaviorJSON,
-              let data = behaviorJSON.data(using: .utf8),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let urlString = object["widgetUrl"] as? String else {
-            return nil
-        }
-        return URL(string: urlString)
     }
 
     private func parseIsland(_ json: String) -> IslandRegions? {
@@ -121,4 +116,24 @@ private struct IslandRegions {
     let compactLeading: String?
     let compactTrailing: String?
     let minimal: String?
+}
+
+private extension View {
+    @ViewBuilder
+    func applySystemActionForegroundColor(_ color: Color?) -> some View {
+        if let color {
+            activitySystemActionForegroundColor(color)
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func applyKeylineTint(_ color: Color?) -> some View {
+        if let color {
+            keylineTint(color)
+        } else {
+            self
+        }
+    }
 }
