@@ -79,6 +79,8 @@ jobs:
       - name: Build
         id: build_code
         run: bun run verify:ios
+      - name: Run Swift unit tests
+        run: bash ./.github/scripts/run-ios-swift-tests.sh
       - name: Verify packed package in example app (iOS)
         shell: bash
         run: bash ./.github/scripts/verify-packed-example.sh ios

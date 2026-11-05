@@ -103,22 +103,48 @@ Add to your app's Info.plist:
 <true/>
 ```
 
-### 4. Create the Widget Bundle
+### 4. Add CapgoLiveActivitiesShared to the Widget Extension
 
-In your Widget Extension, create `LiveActivitiesBundle.swift`:
+The plugin ships `CapgoLiveActivityAttributes`, `CapgoLayoutRenderer`, and related types in the **CapgoLiveActivitiesShared** Swift library. Your Widget Extension target must link that library or Live Activities will not render.
+
+**Swift Package Manager (Capacitor 8 default):**
+
+1. Open the iOS project in Xcode.
+2. Select the **LiveActivities** widget extension target.
+3. **General → Frameworks, Libraries, and Embedded Content → +**
+4. Add the local package at `node_modules/@capgo/capacitor-live-activities` (or your monorepo path).
+5. Add the **CapgoLiveActivitiesShared** product to the widget target.
+
+**CocoaPods:** ensure the widget target compiles the shared sources (same `ios/Sources/CapgoLiveActivitiesShared` files as the main app plugin pod) or add an equivalent dependency so `import CapgoLiveActivitiesShared` resolves.
+
+### 5. Create the Live Activity widget
+
+Copy the templates from the plugin into your Widget Extension target and replace `YOUR_BUNDLE_ID`:
+
+- `ios/WidgetExtension/CapgoLiveActivityWidget.template.swift` → `CapgoLiveActivityWidget.swift`
+- `ios/WidgetExtension/LiveActivitiesBundle.template.swift` → `LiveActivitiesBundle.swift`
+
+Update `appGroupIdentifier()` in `CapgoLiveActivityWidget.swift` to use the same App Group as step 2 (`group.YOUR_BUNDLE_ID.liveactivities`).
+
+`LiveActivitiesBundle.swift`:
 
 ```swift
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
 @main
 struct LiveActivitiesBundle: WidgetBundle {
     var body: some Widget {
-        // Your Live Activity widget goes here
-        LiveActivityWidget()
+        CapgoLiveActivityWidget()
     }
 }
 ```
+
+The widget uses `ActivityConfiguration(for: CapgoLiveActivityAttributes.self)` and renders JSON layouts via `CapgoLayoutRenderer`. After this setup, `startActivity()` from JavaScript calls ActivityKit and the system shows Lock Screen / Dynamic Island content.
+
+### 6. Push updates (optional)
+
+When ActivityKit grants a push token, `getAllActivities()` may include `pushToken` (hex string). Poll after `startActivity()` and send server updates with APNs `liveactivity` push type. Payload `content-state` must match `{ "data": { "key": "value" } }`.
 
 ## Usage Examples
 
@@ -968,12 +994,13 @@ Result of getAllActivities
 
 Activity info returned from getAllActivities
 
-| Prop             | Type                                                             | Description            |
-| ---------------- | ---------------------------------------------------------------- | ---------------------- |
-| **`activityId`** | <code>string</code>                                              | Activity ID            |
-| **`state`**      | <code>'active' \| 'ended' \| 'dismissed' \| 'stale'</code>       | Current activity state |
-| **`startDate`**  | <code>number</code>                                              | Activity start date    |
-| **`data`**       | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code> | Current data           |
+| Prop             | Type                                                             | Description                                                                                                                 | Since |
+| ---------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ----- |
+| **`activityId`** | <code>string</code>                                              | Activity ID                                                                                                                 |       |
+| **`state`**      | <code>'active' \| 'ended' \| 'dismissed' \| 'stale'</code>       | Current activity state                                                                                                      |       |
+| **`startDate`**  | <code>number</code>                                              | Activity start date                                                                                                         |       |
+| **`data`**       | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code> | Current data                                                                                                                |       |
+| **`pushToken`**  | <code>string</code>                                              | ActivityKit push token (hex), when push updates are enabled. Delivered asynchronously after start; poll getAllActivities(). | 1.3.0 |
 
 
 #### SaveImageResult

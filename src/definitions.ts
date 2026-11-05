@@ -336,6 +336,13 @@ export interface ActivityInfo {
   startDate: number;
   /** Current data */
   data: Record<string, unknown>;
+  /**
+   * ActivityKit push token (hex), when push updates are enabled.
+   * Delivered asynchronously after start; poll getAllActivities().
+   *
+   * @since 1.3.0
+   */
+  pushToken?: string;
 }
 
 /**
