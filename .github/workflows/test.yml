@@ -9,6 +9,9 @@ on:
   workflow_dispatch:
   workflow_call:  # Allow this workflow to be called by other workflows
 
+permissions:
+  contents: read
+
 jobs:
   guard_swiftpm_version:
     # Keep this job capped at 10 minutes; never raise it unless explicitly asked.
@@ -89,6 +92,18 @@ jobs:
       - name: Verify packed package in example app (iOS)
         shell: bash
         run: bash ./.github/scripts/verify-packed-example.sh ios
+  test_ios_swift:
+    # Separate from build_ios; keep this job capped at 10 minutes.
+    timeout-minutes: 10
+    runs-on: macOS-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Run CapgoCapacitorLiveActivities Swift tests
+        shell: bash
+        run: bash ./.github/scripts/run-ios-swift-tests.sh
   web:
     # Keep this job capped at 10 minutes; never raise it unless explicitly asked.
     timeout-minutes: 10
