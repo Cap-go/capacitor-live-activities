@@ -32,6 +32,8 @@ jobs:
         run: bun i
       - name: Check plugin wiring
         run: bun run check:wiring
+      - name: Check packed package contents
+        run: bun run check:packed-package
       - name: Build
         id: build_code
         run: bun run build

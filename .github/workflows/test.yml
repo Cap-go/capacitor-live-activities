@@ -52,6 +52,8 @@ jobs:
         run: bun i
       - name: Check plugin wiring
         run: bun run check:wiring
+      - name: Check packed package contents
+        run: bun run check:packed-package
       - name: Check Cap 9 deprecated APIs
         run: bun run check:cap9-deprecated
       - name: Setup java
@@ -84,11 +86,15 @@ jobs:
         run: bun i
       - name: Check plugin wiring
         run: bun run check:wiring
+      - name: Check packed package contents
+        run: bun run check:packed-package
       - name: Check Cap 9 deprecated APIs
         run: bun run check:cap9-deprecated
       - name: Build
         id: build_code
         run: bun run verify:ios
+      - name: Run Swift unit tests
+        run: bash ./.github/scripts/run-ios-swift-tests.sh
       - name: Verify packed package in example app (iOS)
         shell: bash
         run: bash ./.github/scripts/verify-packed-example.sh ios
@@ -124,6 +130,8 @@ jobs:
         run: bun i
       - name: Check plugin wiring
         run: bun run check:wiring
+      - name: Check packed package contents
+        run: bun run check:packed-package
       - name: Check Cap 9 deprecated APIs
         run: bun run check:cap9-deprecated
       - name: Verify packed package in example app (Web)
