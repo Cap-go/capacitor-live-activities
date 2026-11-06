@@ -16,6 +16,8 @@ Pod::Spec.new do |s|
 
   s.subspec 'Plugin' do |plugin|
     plugin.source_files = 'ios/Sources/CapgoLiveActivitiesPlugin/**/*.{swift,h,m,c,cc,mm,cpp}'
+    # CapgoLiveActivitiesShared.podspec ships in this package but is not on the
+    # public CocoaPods index. Apps must declare it with :path (see README iOS Setup).
     plugin.dependency 'CapgoLiveActivitiesShared'
     plugin.dependency 'Capacitor'
   end

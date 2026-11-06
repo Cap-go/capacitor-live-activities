@@ -4,19 +4,21 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "${REPO_ROOT}"
 
-pick_simulator_name() {
+# Prefer an available iPhone simulator and pin DESTINATION by UDID so xcodebuild
+# does not default OS=latest against a device that only exists on an older runtime.
+pick_simulator_id() {
   xcrun simctl list devices available |
-    sed -n 's/^[[:space:]]*\(iPhone[^()]*\) (.*/\1/p' |
+    sed -n 's/^[[:space:]]*iPhone[^()]* (\([A-F0-9-]*\)) .*/\1/p' |
     head -1
 }
 
-SIMULATOR_NAME="$(pick_simulator_name)"
-if [[ -z "${SIMULATOR_NAME}" ]]; then
+SIMULATOR_ID="$(pick_simulator_id)"
+if [[ -z "${SIMULATOR_ID}" ]]; then
   echo "No available iPhone simulator found on this runner." >&2
   exit 1
 fi
 
-DESTINATION="platform=iOS Simulator,name=${SIMULATOR_NAME}"
+DESTINATION="platform=iOS Simulator,id=${SIMULATOR_ID}"
 echo "Running Swift tests with destination: ${DESTINATION}"
 
 xcodebuild test \

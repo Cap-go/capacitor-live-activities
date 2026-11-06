@@ -85,15 +85,22 @@ bunx cap sync
 In Xcode:
 1. File → New → Target
 2. Select "Widget Extension"
-3. Name it exactly: `LiveActivities`
+3. Product Name: `LiveActivities` (Xcode creates the target `LiveActivitiesExtension`)
 4. Uncheck "Include Configuration Intent"
+
+Set the **iOS Deployment Target** to **16.1** or later on:
+- the main app target
+- the `LiveActivitiesExtension` widget target
+- `CapApp-SPM` / `Package.swift` `platforms: [.iOS(...)]` when that package is present
+
+A CapApp-SPM package (or app/widget target) below iOS 16.1 cannot build against this plugin.
 
 ### 2. Configure App Groups
 
 1. Select your main app target → Signing & Capabilities
 2. Add "App Groups" capability
 3. Create group: `group.YOUR_BUNDLE_ID.liveactivities`
-4. Add the same App Group to your Widget Extension target
+4. Add the same App Group to your `LiveActivitiesExtension` target
 
 ### 3. Enable Live Activities in Info.plist
 
@@ -110,20 +117,23 @@ The plugin ships `CapgoLiveActivityAttributes`, `CapgoLayoutRenderer`, and relat
 **Swift Package Manager (Capacitor 8 default):**
 
 1. Open the iOS project in Xcode.
-2. Select the **LiveActivities** widget extension target.
+2. Select the **LiveActivitiesExtension** widget target.
 3. **General → Frameworks, Libraries, and Embedded Content → +**
 4. Add the local package at `node_modules/@capgo/capacitor-live-activities` (or your monorepo path).
 5. Add the **CapgoLiveActivitiesShared** product to the widget target.
 
-**CocoaPods:** add the shared pod to your Widget Extension target so `import CapgoLiveActivitiesShared` resolves:
+**CocoaPods:** `CapgoLiveActivitiesShared` is shipped as a sibling podspec in this package. It is **not** on the public CocoaPods index, so resolve it (and the plugin pod, if you declare it by hand) with a local `:path` to the installed package. Capacitor's generated Podfile already path-points `CapgoCapacitorLiveActivities`; you still need an explicit path pod for the shared module so CocoaPods can satisfy the plugin dependency and so the widget target can import it:
 
 ```ruby
-target 'LiveActivities' do
-  pod 'CapgoLiveActivitiesShared'
+# ios/App/Podfile (paths relative to ios/App; adjust for monorepos)
+pod 'CapgoLiveActivitiesShared', :path => '../../node_modules/@capgo/capacitor-live-activities'
+
+target 'LiveActivitiesExtension' do
+  pod 'CapgoLiveActivitiesShared', :path => '../../node_modules/@capgo/capacitor-live-activities'
 end
 ```
 
-The main app target keeps using `CapgoCapacitorLiveActivities` from the generated Podfile (depends on `CapgoLiveActivitiesShared` and Capacitor).
+The main app target keeps using `CapgoCapacitorLiveActivities` from the generated Podfile (depends on `CapgoLiveActivitiesShared` and Capacitor). Do not rely on `pod 'CapgoLiveActivitiesShared'` without `:path` unless you publish that podspec to a configured spec source.
 
 ### 5. Create the Live Activity widget
 
@@ -1167,7 +1177,9 @@ Color string type - supports hex colors and system colors
 
 Construct a type with a set of properties K of type T
 
-<code>{ [P in K]: T; }</code>
+<code>{
+ [P in K]: T;
+ }</code>
 
 
 #### TimerSequenceCallback
