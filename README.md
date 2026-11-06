@@ -115,15 +115,15 @@ The plugin ships `CapgoLiveActivityAttributes`, `CapgoLayoutRenderer`, and relat
 4. Add the local package at `node_modules/@capgo/capacitor-live-activities` (or your monorepo path).
 5. Add the **CapgoLiveActivitiesShared** product to the widget target.
 
-**CocoaPods:** add the shared subspec to your Widget Extension target so `import CapgoLiveActivitiesShared` resolves:
+**CocoaPods:** add the shared pod to your Widget Extension target so `import CapgoLiveActivitiesShared` resolves:
 
 ```ruby
 target 'LiveActivities' do
-  pod 'CapgoCapacitorLiveActivities/Shared'
+  pod 'CapgoLiveActivitiesShared'
 end
 ```
 
-The main app target keeps using `CapgoCapacitorLiveActivities` from the generated Podfile (Plugin subspec, which depends on Shared).
+The main app target keeps using `CapgoCapacitorLiveActivities` from the generated Podfile (depends on `CapgoLiveActivitiesShared` and Capacitor).
 
 ### 5. Create the Live Activity widget
 

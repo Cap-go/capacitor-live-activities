@@ -14,7 +14,8 @@
     "ios/Tests",
     "ios/WidgetExtension",
     "Package.swift",
-    "CapgoCapacitorLiveActivities.podspec"
+    "CapgoCapacitorLiveActivities.podspec",
+    "CapgoLiveActivitiesShared.podspec"
   ],
   "author": "Martin Donadieu <martin@capgo.app>",
   "license": "MPL-2.0",

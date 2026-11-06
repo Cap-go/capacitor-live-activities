@@ -14,14 +14,9 @@ Pod::Spec.new do |s|
   s.swift_version = '5.1'
   s.default_subspec = 'Plugin'
 
-  s.subspec 'Shared' do |shared|
-    shared.source_files = 'ios/Sources/CapgoLiveActivitiesShared/**/*.{swift,h,m,c,cc,mm,cpp}'
-    shared.module_name = 'CapgoLiveActivitiesShared'
-  end
-
   s.subspec 'Plugin' do |plugin|
     plugin.source_files = 'ios/Sources/CapgoLiveActivitiesPlugin/**/*.{swift,h,m,c,cc,mm,cpp}'
-    plugin.dependency 'CapgoCapacitorLiveActivities/Shared'
+    plugin.dependency 'CapgoLiveActivitiesShared'
     plugin.dependency 'Capacitor'
   end
 end

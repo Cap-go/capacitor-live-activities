@@ -70,7 +70,6 @@ struct CapgoLiveActivityWidget: Widget {
                 )
             }
             .applyKeylineTint(behavior.keyLineTint)
-            .applySystemActionForegroundColor(behavior.systemActionForegroundColor)
             .widgetURL(behavior.widgetURL)
         }
     }
@@ -118,20 +117,20 @@ private struct IslandRegions {
     let minimal: String?
 }
 
+private extension DynamicIsland {
+    func applyKeylineTint(_ color: Color?) -> DynamicIsland {
+        if let color {
+            return keylineTint(color)
+        }
+        return self
+    }
+}
+
 private extension View {
     @ViewBuilder
     func applySystemActionForegroundColor(_ color: Color?) -> some View {
         if let color {
             activitySystemActionForegroundColor(color)
-        } else {
-            self
-        }
-    }
-
-    @ViewBuilder
-    func applyKeylineTint(_ color: Color?) -> some View {
-        if let color {
-            keylineTint(color)
         } else {
             self
         }

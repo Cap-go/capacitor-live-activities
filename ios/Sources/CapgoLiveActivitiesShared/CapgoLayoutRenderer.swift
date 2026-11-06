@@ -201,7 +201,11 @@ public enum CapgoLayoutRenderer {
 
         let timerText: Text = {
             if CapgoTimerLogic.usesPausedZeroWhenReached(pausesOnReach: pausesOnReach, target: date, now: now) {
-                return Text(timerInterval: date...date.addingTimeInterval(1), pauseTime: date, countsDown: true)
+                return Text(
+                    timerInterval: CapgoTimerLogic.pausedZeroTimerInterval(target: date),
+                    pauseTime: date,
+                    countsDown: true
+                )
             }
             switch style {
             case "relative":
