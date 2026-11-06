@@ -55,12 +55,13 @@ case "$platform" in
     # Live Activities require iOS 16.1+; Capacitor's default example app targets 15.0.
     capapp_pkg="$test_app/ios/App/CapApp-SPM/Package.swift"
     if [ -f "$capapp_pkg" ]; then
-      sed -i.bak 's/\.iOS(\.v15)/.iOS(.v16)/' "$capapp_pkg"
+      sed -i.bak -E 's/\.iOS\(\.v1[56]\)/.iOS("16.1")/g' "$capapp_pkg"
+      sed -i.bak -E 's/\.iOS\(\.v16\)/.iOS("16.1")/g' "$capapp_pkg"
       rm -f "$capapp_pkg.bak"
     fi
     pbxproj="$test_app/ios/App/App.xcodeproj/project.pbxproj"
     if [ -f "$pbxproj" ]; then
-      sed -i.bak 's/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/IPHONEOS_DEPLOYMENT_TARGET = 16.1;/g' "$pbxproj"
+      sed -i.bak -E 's/IPHONEOS_DEPLOYMENT_TARGET = 1[56]\.0;/IPHONEOS_DEPLOYMENT_TARGET = 16.1;/g' "$pbxproj"
       rm -f "$pbxproj.bak"
     fi
     rm -rf "$HOME/Library/Caches/org.swift.swiftpm/artifacts"/https___github_com_ionic_team_capacitor_swift_pm_releases_download_*

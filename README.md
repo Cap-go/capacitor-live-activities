@@ -85,15 +85,22 @@ bunx cap sync
 In Xcode:
 1. File → New → Target
 2. Select "Widget Extension"
-3. Name it exactly: `LiveActivities`
+3. Product Name: `LiveActivities` (Xcode creates the target `LiveActivitiesExtension`)
 4. Uncheck "Include Configuration Intent"
+
+Set the **iOS Deployment Target** to **16.1** or later on:
+- the main app target
+- the `LiveActivitiesExtension` widget target
+- `CapApp-SPM` / `Package.swift` `platforms: [.iOS(...)]` when that package is present
+
+A CapApp-SPM package (or app/widget target) below iOS 16.1 cannot build against this plugin.
 
 ### 2. Configure App Groups
 
 1. Select your main app target → Signing & Capabilities
 2. Add "App Groups" capability
 3. Create group: `group.YOUR_BUNDLE_ID.liveactivities`
-4. Add the same App Group to your Widget Extension target
+4. Add the same App Group to your `LiveActivitiesExtension` target
 
 ### 3. Enable Live Activities in Info.plist
 
@@ -103,22 +110,59 @@ Add to your app's Info.plist:
 <true/>
 ```
 
-### 4. Create the Widget Bundle
+### 4. Add CapgoLiveActivitiesShared to the Widget Extension
 
-In your Widget Extension, create `LiveActivitiesBundle.swift`:
+The plugin ships `CapgoLiveActivityAttributes`, `CapgoLayoutRenderer`, and related types in the **CapgoLiveActivitiesShared** Swift library. Your Widget Extension target must link that library or Live Activities will not render.
+
+**Swift Package Manager (Capacitor 8 default):**
+
+1. Open the iOS project in Xcode.
+2. Select the **LiveActivitiesExtension** widget target.
+3. **General → Frameworks, Libraries, and Embedded Content → +**
+4. Add the local package at `node_modules/@capgo/capacitor-live-activities` (or your monorepo path).
+5. Add the **CapgoLiveActivitiesShared** product to the widget target.
+
+**CocoaPods:** `CapgoLiveActivitiesShared` is shipped as a sibling podspec in this package. It is **not** on the public CocoaPods index, so resolve it (and the plugin pod, if you declare it by hand) with a local `:path` to the installed package. Capacitor's generated Podfile already path-points `CapgoCapacitorLiveActivities`; you still need an explicit path pod for the shared module so CocoaPods can satisfy the plugin dependency and so the widget target can import it:
+
+```ruby
+# ios/App/Podfile (paths relative to ios/App; adjust for monorepos)
+pod 'CapgoLiveActivitiesShared', :path => '../../node_modules/@capgo/capacitor-live-activities'
+
+target 'LiveActivitiesExtension' do
+  pod 'CapgoLiveActivitiesShared', :path => '../../node_modules/@capgo/capacitor-live-activities'
+end
+```
+
+The main app target keeps using `CapgoCapacitorLiveActivities` from the generated Podfile (depends on `CapgoLiveActivitiesShared` and Capacitor). Do not rely on `pod 'CapgoLiveActivitiesShared'` without `:path` unless you publish that podspec to a configured spec source.
+
+### 5. Create the Live Activity widget
+
+Copy the templates from the plugin into your Widget Extension target and replace `YOUR_BUNDLE_ID`:
+
+- `ios/WidgetExtension/CapgoLiveActivityWidget.template.swift` → `CapgoLiveActivityWidget.swift`
+- `ios/WidgetExtension/LiveActivitiesBundle.template.swift` → `LiveActivitiesBundle.swift`
+
+Update `appGroupIdentifier()` in `CapgoLiveActivityWidget.swift` to use the same App Group as step 2 (`group.YOUR_BUNDLE_ID.liveactivities`).
+
+`LiveActivitiesBundle.swift`:
 
 ```swift
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
 @main
 struct LiveActivitiesBundle: WidgetBundle {
     var body: some Widget {
-        // Your Live Activity widget goes here
-        LiveActivityWidget()
+        CapgoLiveActivityWidget()
     }
 }
 ```
+
+The widget uses `ActivityConfiguration(for: CapgoLiveActivityAttributes.self)` and renders JSON layouts via `CapgoLayoutRenderer`. After this setup, `startActivity()` from JavaScript calls ActivityKit and the system shows Lock Screen / Dynamic Island content.
+
+### 6. Push updates (optional)
+
+When ActivityKit grants a push token, `getAllActivities()` may include `pushToken` (hex string). Poll after `startActivity()` and send server updates with APNs `liveactivity` push type. Payload `content-state` must match `{ "data": { "key": "value" } }`.
 
 ## Usage Examples
 
@@ -968,12 +1012,13 @@ Result of getAllActivities
 
 Activity info returned from getAllActivities
 
-| Prop             | Type                                                             | Description            |
-| ---------------- | ---------------------------------------------------------------- | ---------------------- |
-| **`activityId`** | <code>string</code>                                              | Activity ID            |
-| **`state`**      | <code>'active' \| 'ended' \| 'dismissed' \| 'stale'</code>       | Current activity state |
-| **`startDate`**  | <code>number</code>                                              | Activity start date    |
-| **`data`**       | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code> | Current data           |
+| Prop             | Type                                                             | Description                                                                                                                 | Since |
+| ---------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ----- |
+| **`activityId`** | <code>string</code>                                              | Activity ID                                                                                                                 |       |
+| **`state`**      | <code>'active' \| 'ended' \| 'dismissed' \| 'stale'</code>       | Current activity state                                                                                                      |       |
+| **`startDate`**  | <code>number</code>                                              | Activity start date                                                                                                         |       |
+| **`data`**       | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code> | Current data                                                                                                                |       |
+| **`pushToken`**  | <code>string</code>                                              | ActivityKit push token (hex), when push updates are enabled. Delivered asynchronously after start; poll getAllActivities(). | 1.3.0 |
 
 
 #### SaveImageResult
@@ -1132,7 +1177,9 @@ Color string type - supports hex colors and system colors
 
 Construct a type with a set of properties K of type T
 
-<code>{ [P in K]: T; }</code>
+<code>{
+ [P in K]: T;
+ }</code>
 
 
 #### TimerSequenceCallback

@@ -12,8 +12,10 @@
     "dist/",
     "ios/Sources",
     "ios/Tests",
+    "ios/WidgetExtension",
     "Package.swift",
-    "CapgoCapacitorLiveActivities.podspec"
+    "CapgoCapacitorLiveActivities.podspec",
+    "CapgoLiveActivitiesShared.podspec"
   ],
   "author": "Martin Donadieu <martin@capgo.app>",
   "license": "MPL-2.0",
@@ -49,6 +51,7 @@
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build",
     "check:wiring": "node scripts/check-capacitor-plugin-wiring.mjs",
+    "check:packed-package": "node scripts/check-packed-package.mjs",
     "check:cap9-deprecated": "node scripts/check-cap9-deprecated.mjs",
     "example:install": "cd example-app && bun install --frozen-lockfile",
     "example:build": "bun run build && cd example-app && bun install --frozen-lockfile && bun run build",

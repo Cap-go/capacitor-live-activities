@@ -15,11 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24.x
       - name: Check out
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Enforce capacitor-swift-pm version
         run: |
           set -euo pipefail
@@ -33,21 +33,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24.x
       - name: Check out
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         id: install_code
         run: bun i
       - name: Check plugin wiring
         run: bun run check:wiring
+      - name: Check packed package contents
+        run: bun run check:packed-package
       - name: Check Cap 9 deprecated APIs
         run: bun run check:cap9-deprecated
       - name: Setup java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: 'zulu'
           java-version: '21'
@@ -63,22 +65,26 @@ jobs:
     runs-on: macOS-latest
     steps:
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24.x
       - name: Check out
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         id: install_code
         run: bun i
       - name: Check plugin wiring
         run: bun run check:wiring
+      - name: Check packed package contents
+        run: bun run check:packed-package
       - name: Check Cap 9 deprecated APIs
         run: bun run check:cap9-deprecated
       - name: Build
         id: build_code
         run: bun run verify:ios
+      - name: Run Swift unit tests
+        run: bash ./.github/scripts/run-ios-swift-tests.sh
       - name: Verify packed package in example app (iOS)
         shell: bash
         run: bash ./.github/scripts/verify-packed-example.sh ios
@@ -89,17 +95,19 @@ jobs:
     name: 'Build code and test'
     steps:
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24.x
       - name: Check out
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         id: install_code
         run: bun i
       - name: Check plugin wiring
         run: bun run check:wiring
+      - name: Check packed package contents
+        run: bun run check:packed-package
       - name: Check Cap 9 deprecated APIs
         run: bun run check:cap9-deprecated
       - name: Verify packed package in example app (Web)
