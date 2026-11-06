@@ -42,6 +42,7 @@ cd example-app
 bun install
 bun run build
 bunx cap sync ios
+python3 ios/configure-live-activities-target.py
 ```
 
 Open the workspace in Xcode:
@@ -54,14 +55,17 @@ In Xcode:
 
 1. Select the **App** scheme and your simulator or device.
 2. Confirm **App** and **LiveActivitiesExtension** targets use deployment target **iOS 16.1+**.
-3. Confirm App Groups `group.app.capgo.live.activities.liveactivities` on **App** and **LiveActivitiesExtension** (already set in the committed entitlements). If you change this id, update every copy together: App entitlements, LiveActivities entitlements, `CapgoLiveActivityWidget.swift` `appGroupIdentifier()`, and the plugin App Group in your host app.
-4. Build and run (**Cmd+R**).
+3. For a physical device: select your **Development Team** on **App** and **LiveActivitiesExtension**. The committed project has no team set, so signing fails until you pick one.
+4. If your team does not own `app.capgo.live.activities`, choose a unique app bundle ID and a matching extension ID (for example `your.team.id` and `your.team.id.LiveActivities`). Register both App IDs in the Apple Developer portal.
+5. Register an App Group for that team. The plugin derives the group as `group.<app bundle ID>.liveactivities` (the committed demo uses `group.app.capgo.live.activities.liveactivities`). Keep every copy aligned with that derived id: App entitlements, LiveActivities entitlements, and `CapgoLiveActivityWidget.swift` `appGroupIdentifier()`.
+6. Build and run (**Cmd+R**).
 
 ### After changing web code
 
 ```bash
 bun run build
 bunx cap sync ios
+python3 ios/configure-live-activities-target.py
 ```
 
 Then run again from Xcode.
