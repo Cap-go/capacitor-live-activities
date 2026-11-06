@@ -1,19 +1,29 @@
 # @capgo/capacitor-live-activities
-<a href="https://capgo.app/"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-live-activities" alt="Capgo - Instant updates for Capacitor" /></a>
+
+Show iOS Live Activities and Dynamic Island updates from your Capacitor app, with a JSON layout system instead of SwiftUI code. Built for deliveries, rides, scores and timers.
+
+<a href="https://capgo.app/?ref=plugin_live_activities"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-live-activities" alt="Capgo - Build Capacitor apps with AI, ship updates instantly" /></a>
 
 <div align="center">
-  <h2><a href="https://capgo.app/?ref=plugin_live_activities"> ➡️ Get Instant updates for your App with Capgo</a></h2>
-  <h2><a href="https://capgo.app/consulting/?ref=plugin_live_activities"> Missing a feature? We'll build the plugin for you 💪</a></h2>
+  <p><b>Capgo</b>: push fixes to your Capacitor users in minutes, build signed iOS and Android apps without a Mac, and roll back in one click.</p>
+  <h2><a href="https://capgo.app/register/?ref=plugin_live_activities">➡️ Get started for free</a></h2>
+  <p>14-day unlimited free trial. No credit card required</p>
 </div>
 
-Manage iOS Live Activities from Capacitor with a powerful JSON-based layout system.
+> 🤖 **Building with an AI coding agent?** Install [Capgo skills](https://capgo.app/skills/?ref=plugin_live_activities) so Claude Code, Codex, Cursor, Copilot, or Gemini CLI know how to install and use `@capgo/capacitor-live-activities` in your Capacitor app: `npx skills add Cap-go/capgo-skills`. Then ask your agent: *"Add @capgo/capacitor-live-activities to my Capacitor app and wire it up."* [Agent setup guides](https://capgo.app/agents/?ref=plugin_live_activities) · [Hosted MCP](https://capgo.app/docs/ai/mcp/?ref=plugin_live_activities)
 
-## Demo
+<p align="center">
+  <img src="./.github/assets/readme-demo.webp" alt="Animated Live Activities demo showing lock screen and Dynamic Island updates from Capacitor" width="300" />
+</p>
 
-<figure>
-  <img src="./assets/demo.webp" alt="Animated Live Activities demo showing lock screen and Dynamic Island updates from Capacitor" width="300" />
-  <figcaption>Live Activity and Dynamic Island updates</figcaption>
-</figure>
+## Key features
+
+- **Lifecycle**: `startActivity()`, `updateActivity()`, `endActivity()` and `getAllActivities()`.
+- **JSON layouts**: describe the lock screen and Dynamic Island views without writing Swift.
+- **Images**: `saveImage()`, `listImages()`, `removeImage()` and `cleanupImages()` share images through your App Group.
+- **Timer sequences**: `startTimerSequence()` with pause, resume, skip, previous and `timerSequenceEvent` for workouts and sports.
+- **Support check**: `areActivitiesSupported()` before you start.
+- **Platforms**: iOS and Android. Live Activities need iOS 16.1 or later. On Android, timer sequences show as a foreground notification. Web is not available.
 
 ## Why Capacitor Live Activities?
 
@@ -75,15 +85,22 @@ bunx cap sync
 In Xcode:
 1. File → New → Target
 2. Select "Widget Extension"
-3. Name it exactly: `LiveActivities`
+3. Product Name: `LiveActivities` (Xcode creates the target `LiveActivitiesExtension`)
 4. Uncheck "Include Configuration Intent"
+
+Set the **iOS Deployment Target** to **16.1** or later on:
+- the main app target
+- the `LiveActivitiesExtension` widget target
+- `CapApp-SPM` / `Package.swift` `platforms: [.iOS(...)]` when that package is present
+
+A CapApp-SPM package (or app/widget target) below iOS 16.1 cannot build against this plugin.
 
 ### 2. Configure App Groups
 
 1. Select your main app target → Signing & Capabilities
 2. Add "App Groups" capability
 3. Create group: `group.YOUR_BUNDLE_ID.liveactivities`
-4. Add the same App Group to your Widget Extension target
+4. Add the same App Group to your `LiveActivitiesExtension` target
 
 ### 3. Enable Live Activities in Info.plist
 
@@ -93,22 +110,59 @@ Add to your app's Info.plist:
 <true/>
 ```
 
-### 4. Create the Widget Bundle
+### 4. Add CapgoLiveActivitiesShared to the Widget Extension
 
-In your Widget Extension, create `LiveActivitiesBundle.swift`:
+The plugin ships `CapgoLiveActivityAttributes`, `CapgoLayoutRenderer`, and related types in the **CapgoLiveActivitiesShared** Swift library. Your Widget Extension target must link that library or Live Activities will not render.
+
+**Swift Package Manager (Capacitor 8 default):**
+
+1. Open the iOS project in Xcode.
+2. Select the **LiveActivitiesExtension** widget target.
+3. **General → Frameworks, Libraries, and Embedded Content → +**
+4. Add the local package at `node_modules/@capgo/capacitor-live-activities` (or your monorepo path).
+5. Add the **CapgoLiveActivitiesShared** product to the widget target.
+
+**CocoaPods:** `CapgoLiveActivitiesShared` is shipped as a sibling podspec in this package. It is **not** on the public CocoaPods index, so resolve it (and the plugin pod, if you declare it by hand) with a local `:path` to the installed package. Capacitor's generated Podfile already path-points `CapgoCapacitorLiveActivities`; you still need an explicit path pod for the shared module so CocoaPods can satisfy the plugin dependency and so the widget target can import it:
+
+```ruby
+# ios/App/Podfile (paths relative to ios/App; adjust for monorepos)
+pod 'CapgoLiveActivitiesShared', :path => '../../node_modules/@capgo/capacitor-live-activities'
+
+target 'LiveActivitiesExtension' do
+  pod 'CapgoLiveActivitiesShared', :path => '../../node_modules/@capgo/capacitor-live-activities'
+end
+```
+
+The main app target keeps using `CapgoCapacitorLiveActivities` from the generated Podfile (depends on `CapgoLiveActivitiesShared` and Capacitor). Do not rely on `pod 'CapgoLiveActivitiesShared'` without `:path` unless you publish that podspec to a configured spec source.
+
+### 5. Create the Live Activity widget
+
+Copy the templates from the plugin into your Widget Extension target and replace `YOUR_BUNDLE_ID`:
+
+- `ios/WidgetExtension/CapgoLiveActivityWidget.template.swift` → `CapgoLiveActivityWidget.swift`
+- `ios/WidgetExtension/LiveActivitiesBundle.template.swift` → `LiveActivitiesBundle.swift`
+
+Update `appGroupIdentifier()` in `CapgoLiveActivityWidget.swift` to use the same App Group as step 2 (`group.YOUR_BUNDLE_ID.liveactivities`).
+
+`LiveActivitiesBundle.swift`:
 
 ```swift
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
 @main
 struct LiveActivitiesBundle: WidgetBundle {
     var body: some Widget {
-        // Your Live Activity widget goes here
-        LiveActivityWidget()
+        CapgoLiveActivityWidget()
     }
 }
 ```
+
+The widget uses `ActivityConfiguration(for: CapgoLiveActivityAttributes.self)` and renders JSON layouts via `CapgoLayoutRenderer`. After this setup, `startActivity()` from JavaScript calls ActivityKit and the system shows Lock Screen / Dynamic Island content.
+
+### 6. Push updates (optional)
+
+When ActivityKit grants a push token, `getAllActivities()` may include `pushToken` (hex string). Poll after `startActivity()` and send server updates with APNs `liveactivity` push type. Payload `content-state` must match `{ "data": { "key": "value" } }`.
 
 ## Usage Examples
 
@@ -1123,7 +1177,9 @@ Color string type - supports hex colors and system colors
 
 Construct a type with a set of properties K of type T
 
-<code>{ [P in K]: T; }</code>
+<code>{
+ [P in K]: T;
+ }</code>
 
 
 #### TimerSequenceCallback

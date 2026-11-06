@@ -224,20 +224,46 @@ if (supportsIos) {
     .filter((e) => e.isFile() && e.name.endsWith(".podspec"))
     .map((e) => path.join(pluginDir, e.name))
     .sort();
-  if (!podspecs.length) errors.push("iOS: missing *.podspec at plugin root");
-  if (podspecs.length > 1) errors.push(`iOS: multiple podspecs at plugin root: ${podspecs.map((p) => path.basename(p))}`);
 
   const pkgSwift = path.join(pluginDir, "Package.swift");
+
+  if (!podspecs.length) {
+    errors.push("iOS: missing *.podspec at plugin root");
+  }
+
   if (!exists(pkgSwift)) {
     errors.push("iOS: missing Package.swift at plugin root");
   } else if (podspecs.length) {
-    const podName = parsePodspecName(podspecs[0]);
     const { pkgName, libNames } = parseSpmNames(pkgSwift);
-    if (!podName) errors.push("Podspec: missing s.name = '...'");
-    if (!pkgName) errors.push('SPM: missing Package(name: "...")');
-    if (podName && pkgName && podName !== pkgName) {
-      errors.push(`Podspec: s.name=${podName} != Package(name)=${pkgName}`);
+    const podNames = [];
+    const seenNames = new Set();
+    for (const p of podspecs) {
+      const n = parsePodspecName(p);
+      if (!n) errors.push(`Podspec: missing s.name = '...' in ${path.basename(p)}`);
+      else if (seenNames.has(n)) errors.push(`Podspec: duplicate s.name=${JSON.stringify(n)}`);
+      else {
+        seenNames.add(n);
+        podNames.push(n);
+      }
     }
+
+    if (!pkgName) errors.push('SPM: missing Package(name: "...")');
+
+    const expectedPods = new Set([pkgName, ...libNames]);
+    for (const n of podNames) {
+      if (!expectedPods.has(n)) {
+        errors.push(
+          `Podspec: s.name=${JSON.stringify(n)} does not match Package(name) or any .library(name) in Package.swift`
+        );
+      }
+    }
+
+    for (const name of expectedPods) {
+      if (!podNames.includes(name)) {
+        errors.push(`iOS: missing podspec s.name=${JSON.stringify(name)} matching Package.swift`);
+      }
+    }
+
     if (pkgName && libNames.length && !libNames.includes(pkgName)) {
       errors.push(`SPM: Package(name)=${pkgName} not present in .library(name) list ${JSON.stringify(libNames)}`);
     }
