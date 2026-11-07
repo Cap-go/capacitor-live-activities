@@ -57,7 +57,7 @@ In Xcode:
 1. Select the **App** scheme and your simulator or device.
 2. Confirm **App** and **LiveActivitiesExtension** targets use deployment target **iOS 16.1+**.
 3. For a physical device: select your **Development Team** on **App** and **LiveActivitiesExtension**. The committed project has no team set, so signing fails until you pick one.
-4. If your team does not own `app.capgo.live.activities`, choose a unique app bundle ID and a matching extension ID (for example `your.team.id` and `your.team.id.LiveActivities`). Update both `appId` values in `capacitor.config.ts` (`appId` and `plugins.CapacitorUpdater.appId`) before `bunx cap sync ios`. Register both App IDs in the Apple Developer portal.
+4. If your team does not own `app.capgo.live.activities`, choose a unique app bundle ID and a matching extension ID (for example `your.team.id` and `your.team.id.LiveActivities`). Update both `appId` values in `capacitor.config.ts` (`appId` and `plugins.CapacitorUpdater.appId`) before `bunx cap sync ios`. In Xcode, set the App and LiveActivitiesExtension bundle identifiers to those IDs for both Debug and Release. Register both App IDs in the Apple Developer portal.
 5. Register an App Group for that team. The plugin derives the group as `group.<app bundle ID>.liveactivities` (the committed demo uses `group.app.capgo.live.activities.liveactivities`). Keep every copy aligned with that derived id: App entitlements, LiveActivities entitlements, and `CapgoLiveActivityWidget.swift` `appGroupIdentifier()`.
 6. Build and run (**Cmd+R**).
 
