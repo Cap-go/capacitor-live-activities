@@ -43,7 +43,7 @@ def ensure_live_activities_info_plist() -> None:
     if not APP_INFO_PLIST.is_file():
         print("Skipping Info.plist update:", APP_INFO_PLIST, "not found")
         return
-    text = APP_INFO_PLIST.read_text()
+    text = APP_INFO_PLIST.read_text(encoding="utf-8")
     if "NSSupportsLiveActivities" in text:
         print("Info.plist already enables Live Activities")
         return
@@ -54,7 +54,7 @@ def ensure_live_activities_info_plist() -> None:
     )
     if anchor not in text:
         raise SystemExit("configure-live-activities-target: Info.plist anchor not found")
-    APP_INFO_PLIST.write_text(text.replace(anchor, insertion, 1))
+    APP_INFO_PLIST.write_text(text.replace(anchor, insertion, 1), encoding="utf-8")
     print("Updated", APP_INFO_PLIST)
 
 
@@ -62,7 +62,7 @@ def ensure_capapp_ios_platform() -> None:
     if not CAPAPP_PACKAGE.is_file():
         print("Skipping CapApp-SPM update:", CAPAPP_PACKAGE, "not found")
         return
-    text = CAPAPP_PACKAGE.read_text()
+    text = CAPAPP_PACKAGE.read_text(encoding="utf-8")
     updated = text
     for old in ('.iOS(.v15)', '.iOS(.v16)', '.iOS("15.0")', '.iOS("16.0")'):
         updated = updated.replace(old, '.iOS("16.1")')
@@ -72,12 +72,12 @@ def ensure_capapp_ios_platform() -> None:
             return
         print("CapApp-SPM platform string not recognized; leaving unchanged")
         return
-    CAPAPP_PACKAGE.write_text(updated)
+    CAPAPP_PACKAGE.write_text(updated, encoding="utf-8")
     print("Updated", CAPAPP_PACKAGE)
 
 
 def main() -> None:
-    text = PBXPROJ.read_text()
+    text = PBXPROJ.read_text(encoding="utf-8")
     if "LiveActivitiesExtension" in text:
         print("LiveActivities extension already configured")
         ensure_live_activities_info_plist()
@@ -435,7 +435,7 @@ def main() -> None:
     ensure_live_activities_info_plist()
     ensure_capapp_ios_platform()
 
-    PBXPROJ.write_text(text)
+    PBXPROJ.write_text(text, encoding="utf-8")
     print("Updated", PBXPROJ)
 
 

@@ -71,7 +71,9 @@ struct CapgoLiveActivityWidget: Widget {
     }
 
     private func appGroupIdentifier() -> String? {
-        "group.app.capgo.live.activities.liveactivities"
+        guard let bundleId = Bundle.main.bundleIdentifier else { return nil }
+        let appBundleId = bundleId.split(separator: ".").dropLast().joined(separator: ".")
+        return "group.\(appBundleId).liveactivities"
     }
 
     private func widgetURL(from behaviorJSON: String?) -> URL? {
