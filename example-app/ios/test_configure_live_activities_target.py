@@ -33,6 +33,11 @@ class ConfigureLiveActivitiesTargetTests(unittest.TestCase):
                 'platforms: [.iOS("16.1")]\n',
             )
 
+    def test_extension_build_configs_set_application_extension_api_only(self):
+        path = pathlib.Path(__file__).resolve().parent / "configure-live-activities-target.py"
+        text = path.read_text(encoding="utf-8")
+        self.assertEqual(text.count("APPLICATION_EXTENSION_API_ONLY = YES;"), 2)
+
     def test_ensure_live_activities_info_plist_adds_key_with_true_value(self):
         module = load_configure_module()
         with tempfile.TemporaryDirectory() as tmp:

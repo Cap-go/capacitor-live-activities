@@ -330,6 +330,7 @@ def main() -> None:
     configs = f"""\t\t{ids['debug_cfg']} /* Debug */ = {{
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {{
+\t\t\t\tAPPLICATION_EXTENSION_API_ONLY = YES;
 \t\t\t\tCODE_SIGN_ENTITLEMENTS = ../LiveActivities/LiveActivities.entitlements;
 \t\t\t\tCODE_SIGN_STYLE = Automatic;
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
@@ -352,6 +353,7 @@ def main() -> None:
 \t\t{ids['release_cfg']} /* Release */ = {{
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {{
+\t\t\t\tAPPLICATION_EXTENSION_API_ONLY = YES;
 \t\t\t\tCODE_SIGN_ENTITLEMENTS = ../LiveActivities/LiveActivities.entitlements;
 \t\t\t\tCODE_SIGN_STYLE = Automatic;
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
