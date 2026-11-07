@@ -346,13 +346,18 @@ export interface ActivityInfo {
   /**
    * ActivityKit push token (hex), when push updates are enabled for the activity.
    * Use this token with APNs liveactivity push type for server-driven updates.
-   * The `content-state` of each push payload must match the native `ContentState` shape,
-   * for example `{ "data": { "key": "value" } }`.
+   * The `content-state` of each push payload must match the native `ContentState` shape.
+   * The `data` object must include every value your layout reads because each push replaces
+   * the previous `data` dictionary, for example `{ "data": { "key": "value" } }`.
    *
    * This field may be absent right after `startActivity()` even when push updates are enabled;
    * ActivityKit delivers the token asynchronously. The token can also change over the activity
    * lifetime. Poll `getAllActivities()` periodically and sync any new token to your
-   * server before sending push updates.
+   * server before sending push updates. Polling is app-driven and may stop while the app is
+   * suspended. Call `getAllActivities()` and sync the token when the app resumes.
+   * If ActivityKit cannot register push updates, the native layer may start the activity
+   * without a push token (`pushType` nil). In that case `pushToken` stays absent permanently,
+   * unlike the brief gap right after a successful token registration.
    *
    * @since 1.3.0
    */

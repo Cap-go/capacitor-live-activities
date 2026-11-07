@@ -12,8 +12,9 @@ Capacitor example app for the local `@capgo/capacitor-live-activities` plugin (`
 
 ## Prerequisites
 
-- [Bun](https://bun.sh) (same as the parent repo)
-- Xcode 15+ with iOS 16.1 SDK
+- Node.js 22 or newer and npm (the root `bun run build` runs npm scripts for docgen and TypeScript)
+- [Bun](https://bun.sh) for installs and example-app scripts (same as the parent repo)
+- Xcode 26.0 or newer
 - Physical iPhone or simulator on **iOS 16.1+** (Dynamic Island needs a supported device model)
 - Live Activities enabled for the app in **Settings > (app name)**
 
@@ -56,7 +57,7 @@ In Xcode:
 1. Select the **App** scheme and your simulator or device.
 2. Confirm **App** and **LiveActivitiesExtension** targets use deployment target **iOS 16.1+**.
 3. For a physical device: select your **Development Team** on **App** and **LiveActivitiesExtension**. The committed project has no team set, so signing fails until you pick one.
-4. If your team does not own `app.capgo.live.activities`, choose a unique app bundle ID and a matching extension ID (for example `your.team.id` and `your.team.id.LiveActivities`). Register both App IDs in the Apple Developer portal.
+4. If your team does not own `app.capgo.live.activities`, choose a unique app bundle ID and a matching extension ID (for example `your.team.id` and `your.team.id.LiveActivities`). Update both `appId` values in `capacitor.config.ts` (`appId` and `plugins.CapacitorUpdater.appId`) before `bunx cap sync ios`. Register both App IDs in the Apple Developer portal.
 5. Register an App Group for that team. The plugin derives the group as `group.<app bundle ID>.liveactivities` (the committed demo uses `group.app.capgo.live.activities.liveactivities`). Keep every copy aligned with that derived id: App entitlements, LiveActivities entitlements, and `CapgoLiveActivityWidget.swift` `appGroupIdentifier()`.
 6. Build and run (**Cmd+R**).
 
