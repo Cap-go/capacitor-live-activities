@@ -6,10 +6,12 @@ cd "${REPO_ROOT}"
 
 # Prefer an available iPhone simulator and pin DESTINATION by UDID so xcodebuild
 # does not default OS=latest against a device that only exists on an older runtime.
+# Capture the UUID after the full device name (including parenthesized model details).
+# Read all input before selecting the first match so pipefail is not tripped.
 pick_simulator_id() {
   xcrun simctl list devices available |
-    sed -n 's/^[[:space:]]*iPhone[^()]* (\([A-F0-9-]*\)) .*/\1/p' |
-    head -1
+    sed -n -E 's/^[[:space:]]*(iPhone.*) \(([0-9A-Fa-f-]{36})\) .*/\2/p' |
+    sed -n '1p'
 }
 
 SIMULATOR_ID="$(pick_simulator_id)"

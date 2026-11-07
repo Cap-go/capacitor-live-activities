@@ -83,7 +83,10 @@ export interface LayoutElementText {
  */
 export interface LayoutElementImage {
   type: 'image';
-  /** Image source type */
+  /**
+   * Image source type.
+   * Remote `url` images are not supported in Live Activity snapshots; download in the app and use `saved`.
+   */
   source: 'url' | 'sfSymbol' | 'asset' | 'base64' | 'saved';
   /** Image value (URL, symbol name, asset name, base64 string, or saved image name) */
   value: string;
@@ -332,13 +335,29 @@ export interface ActivityInfo {
   activityId: string;
   /** Current activity state */
   state: 'active' | 'ended' | 'dismissed' | 'stale';
-  /** Activity start date */
+  /**
+   * Activity start date in milliseconds since epoch.
+   * Persisted across app restarts; `0` means unknown (activity started by a plugin version
+   * that did not persist it).
+   */
   startDate: number;
   /** Current data */
   data: Record<string, unknown>;
   /**
-   * ActivityKit push token (hex), when push updates are enabled.
-   * Delivered asynchronously after start; poll getAllActivities().
+   * ActivityKit push token (hex), when push updates are enabled for the activity.
+   * Use this token with APNs liveactivity push type for server-driven updates.
+   * The `content-state` of each push payload must match the native `ContentState` shape.
+   * The `data` object must include every value your layout reads because each push replaces
+   * the previous `data` dictionary, for example `{ "data": { "key": "value" } }`.
+   *
+   * This field may be absent right after `startActivity()` even when push updates are enabled;
+   * ActivityKit delivers the token asynchronously. The token can also change over the activity
+   * lifetime. Poll `getAllActivities()` periodically and sync any new token to your
+   * server before sending push updates. Polling is app-driven and may stop while the app is
+   * suspended. Call `getAllActivities()` and sync the token when the app resumes.
+   * If ActivityKit cannot register push updates, the native layer may start the activity
+   * without a push token (`pushType` nil). In that case `pushToken` stays absent permanently,
+   * unlike the brief gap right after a successful token registration.
    *
    * @since 1.3.0
    */
