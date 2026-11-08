@@ -91,17 +91,20 @@ def main() -> None:
         "pkg_ref", "pkg_product", "pkg_framework_build",
     ]}
 
-    deployment_old = "IPHONEOS_DEPLOYMENT_TARGET = 15.0;"
     deployment_new = "IPHONEOS_DEPLOYMENT_TARGET = 16.1;"
-    deployment_count = text.count(deployment_old)
-    if deployment_count:
-        text = replace_n(
-            text,
-            deployment_old,
-            deployment_new,
-            deployment_count,
-            label="IPHONEOS_DEPLOYMENT_TARGET",
-        )
+    for deployment_old in (
+        "IPHONEOS_DEPLOYMENT_TARGET = 15.0;",
+        "IPHONEOS_DEPLOYMENT_TARGET = 16.0;",
+    ):
+        deployment_count = text.count(deployment_old)
+        if deployment_count:
+            text = replace_n(
+                text,
+                deployment_old,
+                deployment_new,
+                deployment_count,
+                label="IPHONEOS_DEPLOYMENT_TARGET",
+            )
 
     app_frameworks = "504EC3011FED79650016851F"
     products_group = "504EC3051FED79650016851F"
