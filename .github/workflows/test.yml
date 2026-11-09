@@ -6,11 +6,7 @@ on:
       - renovate/**
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
   workflow_call:  # Allow this workflow to be called by other workflows
-
-permissions:
-  contents: read
 
 jobs:
   guard_swiftpm_version:
@@ -24,8 +20,6 @@ jobs:
           node-version: 24.x
       - name: Check out
         uses: actions/checkout@v7
-        with:
-          persist-credentials: false
       - name: Enforce capacitor-swift-pm version
         run: |
           set -euo pipefail
@@ -44,8 +38,6 @@ jobs:
           node-version: 24.x
       - name: Check out
         uses: actions/checkout@v7
-        with:
-          persist-credentials: false
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         id: install_code
@@ -78,8 +70,6 @@ jobs:
           node-version: 24.x
       - name: Check out
         uses: actions/checkout@v7
-        with:
-          persist-credentials: false
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         id: install_code
@@ -97,14 +87,12 @@ jobs:
         shell: bash
         run: bash ./.github/scripts/verify-packed-example.sh ios
   test_ios_swift:
-    # Separate from build_ios; keep this job capped at 10 minutes.
+    # Separate macOS job for SwiftPM unit tests (run-ios-swift-tests.sh); keeps build_ios focused on verify:ios + packed example.
     timeout-minutes: 10
     runs-on: macOS-latest
     steps:
       - name: Check out
         uses: actions/checkout@v7
-        with:
-          persist-credentials: false
       - name: Run CapgoCapacitorLiveActivities Swift tests
         shell: bash
         run: bash ./.github/scripts/run-ios-swift-tests.sh
@@ -120,8 +108,6 @@ jobs:
           node-version: 24.x
       - name: Check out
         uses: actions/checkout@v7
-        with:
-          persist-credentials: false
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         id: install_code

@@ -16,8 +16,6 @@ jobs:
           node-version: 24.x
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          persist-credentials: false
       - name: GitHub Releases to Discord
         uses: SethCohen/github-releases-to-discord@v1
         with:
