@@ -345,6 +345,9 @@ export interface ActivityInfo {
   data: Record<string, unknown>;
   /**
    * ActivityKit push token (hex), when push updates are enabled for the activity.
+   * The main iOS app target must have the Push Notifications capability enabled in Xcode
+   * (Signing & Capabilities); without it ActivityKit cannot register for push updates and
+   * this field stays absent permanently after start.
    * Use this token with APNs liveactivity push type for server-driven updates.
    * The `content-state` of each push payload must match the native `ContentState` shape.
    * The `data` object must include every value your layout reads because each push replaces

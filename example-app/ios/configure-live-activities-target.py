@@ -64,8 +64,12 @@ def ensure_capapp_ios_platform() -> None:
         return
     text = CAPAPP_PACKAGE.read_text(encoding="utf-8")
     updated = text
-    for old in ('.iOS(.v15)', '.iOS(.v16)', '.iOS("15.0")', '.iOS("16.0")'):
+    for old in ('.iOS(.v16)', '.iOS(.v15)', '.iOS("16.0")', '.iOS("15.0")'):
         updated = updated.replace(old, '.iOS("16.1")')
+    if '.iOS("16.1")' not in updated and ('platforms:' in text or '.iOS(' in text):
+        raise SystemExit(
+            'configure-live-activities-target: CapApp-SPM must declare platforms: [.iOS("16.1")]'
+        )
     if updated == text:
         if '.iOS("16.1")' in text:
             print("CapApp-SPM already targets iOS 16.1")
