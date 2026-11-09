@@ -12,8 +12,8 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.5.2"),
-        .package(name: "CapgoCapacitorLiveActivities", path: "../../../node_modules/.bun/@capgo+capacitor-live-activities@file+../node_modules/@capgo/capacitor-live-activities"),
-        .package(name: "CapgoCapacitorUpdater", path: "../../../node_modules/.bun/@capgo+capacitor-updater@8.50.2+8c735c3c6e2ff3c1/node_modules/@capgo/capacitor-updater")
+        .package(name: "CapgoCapacitorLiveActivities", path: "../../../node_modules/@capgo/capacitor-live-activities"),
+        .package(name: "CapgoCapacitorUpdater", path: "../../../node_modules/@capgo/capacitor-updater")
     ],
     targets: [
         .target(

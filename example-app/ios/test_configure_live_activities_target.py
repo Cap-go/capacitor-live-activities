@@ -143,6 +143,31 @@ class ConfigureLiveActivitiesTargetTests(unittest.TestCase):
                 plist.read_text(encoding="utf-8"),
             )
 
+    def test_main_normalizes_capapp_platform_when_extension_already_configured(self):
+        module = load_configure_module()
+        ios_dir = pathlib.Path(__file__).resolve().parent
+        source_pbx = ios_dir / "App" / "App.xcodeproj" / "project.pbxproj"
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_ios = pathlib.Path(tmp) / "ios"
+            proj_dir = tmp_ios / "App" / "App.xcodeproj"
+            proj_dir.mkdir(parents=True)
+            pbx = proj_dir / "project.pbxproj"
+            original = source_pbx.read_text(encoding="utf-8")
+            self.assertIn("LiveActivitiesExtension", original)
+            pbx.write_text(original, encoding="utf-8")
+            pkg = tmp_ios / "App" / "CapApp-SPM" / "Package.swift"
+            pkg.parent.mkdir(parents=True)
+            pkg.write_text("platforms: [.iOS(.v16)]\n", encoding="utf-8")
+            module.PBXPROJ = pbx
+            module.APP_INFO_PLIST = tmp_ios / "App" / "App" / "Info.plist"
+            module.CAPAPP_PACKAGE = pkg
+            module.main()
+            self.assertEqual(
+                pkg.read_text(encoding="utf-8"),
+                'platforms: [.iOS("16.1")]\n',
+            )
+            self.assertEqual(pbx.read_text(encoding="utf-8"), original)
+
 
 if __name__ == "__main__":
     unittest.main()
