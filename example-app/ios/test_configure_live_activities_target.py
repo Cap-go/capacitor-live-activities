@@ -6,6 +6,7 @@ import importlib.util
 
 
 def load_configure_module():
+    """Import configure-live-activities-target.py as a module for unit tests."""
     path = pathlib.Path(__file__).resolve().parent / "configure-live-activities-target.py"
     spec = importlib.util.spec_from_file_location("configure_live_activities_target", path)
     module = importlib.util.module_from_spec(spec)
@@ -14,6 +15,7 @@ def load_configure_module():
 
 
 def strip_live_activities_from_pbxproj(text: str) -> str:
+    """Remove LiveActivities extension artifacts from a project.pbxproj snapshot."""
     patterns = [
         r"\t\t[A-F0-9]{24} /\* LiveActivitiesExtension \*/ = \{.*?\n\t\t\};\n",
         r"\t\t[A-F0-9]{24} /\* Build configuration list for PBXNativeTarget \"LiveActivitiesExtension\" \*/ = \{.*?\n\t\t\};\n",
@@ -64,6 +66,7 @@ def strip_live_activities_from_pbxproj(text: str) -> str:
 
 
 def extension_live_activities_build_settings(pbx: str) -> list[str]:
+    """Return XCBuildConfiguration buildSettings blocks for the LiveActivities extension."""
     blocks = re.findall(
         r"isa = XCBuildConfiguration;\s+buildSettings = \{(.*?)\};\s+name = (?:Debug|Release);",
         pbx,

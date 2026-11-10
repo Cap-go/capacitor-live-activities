@@ -59,7 +59,8 @@ In Xcode:
 3. For a physical device: select your **Development Team** on **App** and **LiveActivitiesExtension**. The committed project has no team set, so signing fails until you pick one.
 4. If your team does not own `app.capgo.live.activities`, choose a unique app bundle ID and a matching extension ID (for example `your.team.id` and `your.team.id.LiveActivities`). Update both `appId` values in `capacitor.config.ts` (`appId` and `plugins.CapacitorUpdater.appId`) before `bunx cap sync ios`. In Xcode, set the App and LiveActivitiesExtension bundle identifiers to those IDs for both Debug and Release. Register both App IDs in the Apple Developer portal.
 5. Register an App Group for that team. The plugin derives the group as `group.<app bundle ID>.liveactivities` (the committed demo uses `group.app.capgo.live.activities.liveactivities`). Keep every copy aligned with that derived id: App entitlements, LiveActivities entitlements, and `CapgoLiveActivityWidget.swift` `appGroupIdentifier()`.
-6. Build and run (**Cmd+R**).
+6. To test the **ActivityKit push token** card: on the **App** target (not the extension), enable **Signing & Capabilities > Push Notifications**. Also enable push updates when you start an activity in the demo. ActivityKit only issues a token when the app has this capability.
+7. Build and run (**Cmd+R**).
 
 ### After changing web code
 
@@ -73,7 +74,7 @@ Then run again from Xcode.
 
 ### Push token in the demo
 
-When ActivityKit push updates are enabled for an activity, `getAllActivities()` may include a `pushToken` field (hex). The demo shows it on the **ActivityKit push token** card. Server-driven updates also need Push Notifications capability and an APNs backend (see the plugin getting started guide).
+When ActivityKit push updates are enabled for an activity, `getAllActivities()` may include a `pushToken` field (hex). The demo shows it on the **ActivityKit push token** card. You do not need an APNs backend to display that token. An APNs backend is only required to send server-driven Live Activity updates after you have the token (see the plugin getting started guide).
 
 ## Android
 

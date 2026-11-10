@@ -1,6 +1,7 @@
 /** Activity states the demo can select for Update and End. */
 export const SELECTABLE_ACTIVITY_STATES = new Set(['active', 'stale']);
 
+/** Return activities in a state the demo can update or end. */
 export function filterSelectableActivities(activities) {
   return activities?.filter((item) => SELECTABLE_ACTIVITY_STATES.has(item.state)) ?? [];
 }

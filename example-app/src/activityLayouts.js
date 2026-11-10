@@ -1,3 +1,4 @@
+/** Build the JSON layout used by the delivery-tracking Live Activity demo. */
 export function createDeliveryLayout() {
   return {
     layout: {

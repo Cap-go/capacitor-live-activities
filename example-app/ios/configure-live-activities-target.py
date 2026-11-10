@@ -10,6 +10,7 @@ PBXPROJ = pathlib.Path(__file__).resolve().parent / "App" / "App.xcodeproj" / "p
 
 
 def app_info_plist_path(pbxproj: pathlib.Path) -> pathlib.Path:
+    """Return the App target Info.plist path next to the given Xcode project."""
     return pbxproj.parent.parent / "App" / "Info.plist"
 
 
@@ -18,10 +19,12 @@ CAPAPP_PACKAGE = PBXPROJ.parent.parent / "CapApp-SPM" / "Package.swift"
 
 
 def uid() -> str:
+    """Return a 24-character uppercase hex id for new PBX objects."""
     return uuid.uuid4().hex[:24].upper()
 
 
 def replace_once(text: str, old: str, new: str, *, label: str) -> str:
+    """Replace the first occurrence of old with new or exit with label in the error."""
     if old not in text:
         raise SystemExit(f"configure-live-activities-target: anchor not found ({label})")
     updated = text.replace(old, new, 1)
@@ -31,6 +34,7 @@ def replace_once(text: str, old: str, new: str, *, label: str) -> str:
 
 
 def replace_n(text: str, old: str, new: str, count: int, *, label: str) -> str:
+    """Replace exactly count occurrences of old with new or exit when the count differs."""
     found = text.count(old)
     if found < count:
         raise SystemExit(
@@ -40,6 +44,7 @@ def replace_n(text: str, old: str, new: str, count: int, *, label: str) -> str:
 
 
 def ensure_live_activities_info_plist() -> None:
+    """Set NSSupportsLiveActivities on the App Info.plist when it is not already set."""
     if not APP_INFO_PLIST.is_file():
         print("Skipping Info.plist update:", APP_INFO_PLIST, "not found")
         return
@@ -59,6 +64,7 @@ def ensure_live_activities_info_plist() -> None:
 
 
 def ensure_capapp_ios_platform() -> None:
+    """Bump CapApp-SPM Package.swift iOS platform to 16.1 when an older minimum is set."""
     if not CAPAPP_PACKAGE.is_file():
         print("Skipping CapApp-SPM update:", CAPAPP_PACKAGE, "not found")
         return
@@ -81,6 +87,7 @@ def ensure_capapp_ios_platform() -> None:
 
 
 def main() -> None:
+    """Wire the LiveActivities widget extension into the Capacitor App Xcode project."""
     text = PBXPROJ.read_text(encoding="utf-8")
     if "LiveActivitiesExtension" in text:
         print("LiveActivities extension already configured")
