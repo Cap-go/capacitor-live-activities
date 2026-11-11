@@ -11,7 +11,7 @@ import CapgoLiveActivitiesShared
  */
 @objc(CapgoLiveActivitiesPlugin)
 public class CapgoLiveActivitiesPlugin: CAPPlugin, CAPBridgedPlugin {
-    private let pluginVersion: String = "1.2.6"
+    private let pluginVersion: String = "1.3.0"
     public let identifier = "CapgoLiveActivitiesPlugin"
     public let jsName = "CapgoLiveActivities"
     public let pluginMethods: [CAPPluginMethod] = [
