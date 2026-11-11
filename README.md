@@ -16,6 +16,17 @@ Show iOS Live Activities and Dynamic Island updates from your Capacitor app, wit
   <img src="./.github/assets/readme-demo.webp" alt="Animated Live Activities demo showing lock screen and Dynamic Island updates from Capacitor" width="300" />
 </p>
 
+## Built and maintained with AI
+
+We build, improve and fix our plugins with heavy use of AI. Capgo the product is mostly AI-optional for you; the AI is our own engineering system, and the speed it gives us is part of what you pay for.
+
+- Most plugin issues get a fix pull request the same day, often within a couple of hours, and are usually resolved in one to two days.
+- Every pull request is reviewed automatically by our AI review system, usually within minutes.
+- Our AI pre-checks tests, code review, conventions and security, then a human validates and merges.
+- In the last 90 days, 95% of plugin issues were resolved.
+
+[Learn more about how we build with AI](https://capgo.app/docs/plugins/ai-engineering/)
+
 ## Key features
 
 - **Lifecycle**: `startActivity()`, `updateActivity()`, `endActivity()` and `getAllActivities()`.
