@@ -83,11 +83,19 @@ jobs:
       - name: Build
         id: build_code
         run: bun run verify:ios
-      - name: Run Swift unit tests
-        run: bash ./.github/scripts/run-ios-swift-tests.sh
       - name: Verify packed package in example app (iOS)
         shell: bash
         run: bash ./.github/scripts/verify-packed-example.sh ios
+  test_ios_swift:
+    # Separate macOS job for SwiftPM unit tests (run-ios-swift-tests.sh); keeps build_ios focused on verify:ios + packed example.
+    timeout-minutes: 10
+    runs-on: macOS-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+      - name: Run CapgoCapacitorLiveActivities Swift tests
+        shell: bash
+        run: bash ./.github/scripts/run-ios-swift-tests.sh
   web:
     # Keep this job capped at 10 minutes; never raise it unless explicitly asked.
     timeout-minutes: 10
