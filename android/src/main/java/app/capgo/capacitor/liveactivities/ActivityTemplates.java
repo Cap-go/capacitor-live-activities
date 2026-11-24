@@ -10,7 +10,8 @@ import java.util.regex.Pattern;
  */
 final class ActivityTemplates {
 
-    private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{\\s*([A-Za-z0-9_.-]+)\\s*\\}\\}");
+    // The iOS renderer's pattern (CapgoLayoutRenderer.interpolate): any key up to the closing braces, trimmed
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{([^}]+)\\}\\}");
 
     private ActivityTemplates() {}
 
@@ -24,7 +25,7 @@ final class ActivityTemplates {
         StringBuilder result = new StringBuilder();
 
         while (matcher.find()) {
-            Object value = data == null ? null : data.get(matcher.group(1));
+            Object value = data == null ? null : data.get(matcher.group(1).trim());
             matcher.appendReplacement(result, Matcher.quoteReplacement(format(value)));
         }
         matcher.appendTail(result);
@@ -64,7 +65,8 @@ final class ActivityTemplates {
         if (value instanceof Double || value instanceof Float) {
             double number = ((Number) value).doubleValue();
 
-            if (number == Math.rint(number) && !Double.isInfinite(number)) {
+            // within a long's range: past it, (long) would saturate
+            if (number == Math.rint(number) && Math.abs(number) < 1e18) {
                 return String.valueOf((long) number);
             }
         }

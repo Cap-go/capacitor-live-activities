@@ -26,6 +26,21 @@ public class ActivityTemplatesTest {
     }
 
     @Test
+    public void takesAnyKeyAsIosDoes() {
+        Map<String, Object> data = new HashMap<>();
+        data.put("order number", "7");
+        data.put("état", "prêt");
+        assertEquals("#7 prêt", ActivityTemplates.fill("#{{order number}} {{ état }}", data));
+    }
+
+    @Test
+    public void printsHugeNumbersAsTheyAre() {
+        Map<String, Object> data = new HashMap<>();
+        data.put("big", 1e19);
+        assertEquals("1.0E19", ActivityTemplates.fill("{{big}}", data));
+    }
+
+    @Test
     public void leavesMissingValuesEmpty() {
         assertEquals("[]", ActivityTemplates.fill("[{{nope}}]", data()));
         assertEquals("[]", ActivityTemplates.fill("[{{missingValue}}]", data()));

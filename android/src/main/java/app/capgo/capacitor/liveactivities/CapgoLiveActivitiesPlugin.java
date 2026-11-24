@@ -45,7 +45,8 @@ import org.json.JSONObject;
 /**
  * Android implementation for Live Activities plugin.
  * A Live Activity started with an {@code android} layout is an ongoing notification, which
- * Android 16+ can promote to a Live Update (a status bar chip, the top of the lock screen).
+ * Android can promote to a Live Update from Android 16 QPR1 (a status bar chip, the top of the
+ * lock screen).
  * Timer sequences work on Android using foreground notifications.
  */
 @CapacitorPlugin(
@@ -66,10 +67,13 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
     private static final String NEXT_NOTIFICATION_ID_KEY = "nextNotificationId";
     // timer sequences use 1001
     private static final int FIRST_ACTIVITY_NOTIFICATION_ID = 2000;
-    // Notification.EXTRA_REQUEST_PROMOTED_ONGOING (API 36.1); read by Android 16+
+    // Notification.EXTRA_REQUEST_PROMOTED_ONGOING: public from API 36.1 (Android 16 QPR1), where
+    // apps can request promotion; ignored before
     private static final String EXTRA_REQUEST_PROMOTED_ONGOING = "android.requestPromotedOngoing";
     // Notification.EXTRA_CHRONOMETER_COUNT_DOWN (API 24)
     private static final String EXTRA_CHRONOMETER_COUNT_DOWN = "android.chronometerCountDown";
+    // A notification just posted may not be listed as shown yet: not taken for dismissed before
+    private static final long JUST_POSTED_MS = 5000;
     private final String pluginVersion = "1.3.3";
 
     private final Map<String, TimerSequenceInfo> timerSequences = new HashMap<>();
@@ -195,11 +199,12 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
                 activity.put("widgetUrl", behavior.getString("widgetUrl"));
             }
 
+            Boolean promotable = postActivity(activity, null);
             saveActivity(activityId, activity);
 
             JSObject ret = new JSObject();
             ret.put("activityId", activityId);
-            ret.put("promotable", postActivity(activity, null));
+            ret.put("promotable", promotable);
             call.resolve(ret);
         } catch (JSONException e) {
             call.reject("Invalid activity options: " + e.getMessage());
@@ -219,8 +224,8 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
         try {
             // As on iOS, the data replaces the previous data
             activity.put("data", objectOrEmpty(call.getObject("data")));
-            saveActivity(activityId, activity);
             postActivity(activity, null);
+            saveActivity(activityId, activity);
             call.resolve();
         } catch (JSONException e) {
             call.reject("Invalid activity data: " + e.getMessage());
@@ -262,7 +267,9 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
 
     @PluginMethod
     public void getAllActivities(PluginCall call) {
-        Set<Integer> shown = shownNotificationIds();
+        // While the app's notifications (or the activities' channel) are blocked, none is shown:
+        // that says nothing of whether the user dismissed one
+        Set<Integer> shown = activityNotificationsBlocked() ? null : shownNotificationIds();
         JSArray activities = new JSArray();
         Map<String, ?> stored = activityPrefs().getAll();
 
@@ -275,8 +282,9 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
 
             try {
                 JSONObject activity = new JSONObject(String.valueOf(entry.getValue()));
-                // the user dismissed it (Android 14+ lets them), or the app's data was cleared
-                boolean active = shown == null || shown.contains(activity.getInt("notificationId"));
+                // Not shown: the user dismissed it (Android 14+ lets them)
+                boolean justPosted = System.currentTimeMillis() - activity.optLong("postedAt", 0) < JUST_POSTED_MS;
+                boolean active = shown == null || justPosted || shown.contains(activity.getInt("notificationId"));
 
                 JSObject info = new JSObject();
                 info.put("activityId", activityId);
@@ -834,7 +842,12 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
             .setOngoing(!ended)
             .setOnlyAlertOnce(true)
             .setSilent(true)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            // as on iOS, an activity shows in full on the lock screen, unless the app says otherwise
+            .setVisibility(
+                "private".equals(android.optString("visibility"))
+                    ? NotificationCompat.VISIBILITY_PRIVATE
+                    : NotificationCompat.VISIBILITY_PUBLIC
+            )
             .setContentIntent(activityTapIntent(activity));
 
         String text = ActivityTemplates.fill(android.optString("text", ""), data);
@@ -875,7 +888,15 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
             promotable = !ended && notification.hasPromotableCharacteristics();
         }
 
-        showActivityNotification(activity.getInt("notificationId"), notification);
+        int notificationId = activity.getInt("notificationId");
+        activity.put("postedAt", System.currentTimeMillis());
+        showActivityNotification(notificationId, notification);
+
+        // setTimeoutAfter only exists from Android 8: before, cancel it here (while the app runs)
+        if (ended && Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            handler.postDelayed(() -> NotificationManagerCompat.from(getContext()).cancel(notificationId), timeoutMs);
+        }
+
         return promotable;
     }
 
@@ -929,6 +950,22 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
+    }
+
+    private boolean activityNotificationsBlocked() {
+        NotificationManagerCompat notifications = NotificationManagerCompat.from(getContext());
+        if (!notifications.areNotificationsEnabled()) {
+            return true;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = getContext()
+                .getSystemService(NotificationManager.class)
+                .getNotificationChannel(ACTIVITY_CHANNEL_ID);
+            return channel != null && channel.getImportance() == NotificationManager.IMPORTANCE_NONE;
+        }
+
+        return false;
     }
 
     // The ids of the app's notifications on screen now; null where Android cannot tell

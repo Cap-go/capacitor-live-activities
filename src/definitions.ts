@@ -263,9 +263,10 @@ export interface AndroidActivityTimer {
 }
 
 /**
- * How an activity shows on Android: as an ongoing notification. On Android 16+ the system
- * can promote it to a Live Update (a chip in the status bar, at the top of the lock screen
- * and of the notification shade), unless the user turned that off for the app.
+ * How an activity shows on Android: as an ongoing notification. From Android 16 QPR1
+ * (API 36.1), where apps can request it, the system can promote it to a Live Update (a chip
+ * in the status bar, at the top of the lock screen and of the notification shade), unless the
+ * user turned that off for the app.
  *
  * Text takes `{{key}}` placeholders from the activity's `data`, as the iOS layout does, so
  * `updateActivity` updates it.
@@ -277,11 +278,14 @@ export interface AndroidActivityLayout {
   title: string;
   /** The text under the title */
   text?: string;
-  /** A timer counting up from (or down to) a date, next to the title and in the chip */
+  /**
+   * A timer counting up from (or down to) a date, next to the title, and in the chip when
+   * there is no `chipText`
+   */
   timer?: AndroidActivityTimer;
   /**
-   * Android 16+: a few characters for the status bar chip, e.g. `'{{eta}}'`. Without it the
-   * chip shows the timer, or only the icon.
+   * Android 16 QPR1+ (API 36.1): a few characters for the status bar chip, e.g. `'{{eta}}'`.
+   * Without it the chip shows the timer, or only the icon.
    */
   chipText?: string;
   /**
@@ -290,6 +294,13 @@ export interface AndroidActivityLayout {
    * Android may draw as a plain shape: prefer a white-on-transparent icon.
    */
   smallIcon?: string;
+  /**
+   * On the lock screen: `'public'` shows the activity in full, as an iOS Live Activity does;
+   * `'private'` shows only that there is one, until the device is unlocked.
+   *
+   * @default 'public'
+   */
+  visibility?: 'public' | 'private';
 }
 
 /**
@@ -298,17 +309,17 @@ export interface AndroidActivityLayout {
  * @since 1.0.0
  */
 export interface StartActivityOptions {
-  /** Main activity layout (lock screen widget) */
+  /** Main activity layout (lock screen widget). iOS only: Android uses `android`. */
   layout: ActivityLayout;
-  /** Dynamic Island layout configuration */
+  /** Dynamic Island layout configuration (iOS only) */
   dynamicIslandLayout: DynamicIslandLayout;
   /** Activity behavior settings */
   behavior?: LiveActivitiesBehavior;
   /** Dynamic data for the activity */
   data: Record<string, unknown>;
-  /** Stale date timestamp (activity becomes stale after this) */
+  /** Stale date timestamp (activity becomes stale after this) (iOS only) */
   staleDate?: number;
-  /** Relevance score for activity ordering (0-100) */
+  /** Relevance score for activity ordering (0-100) (iOS only) */
   relevanceScore?: number;
   /**
    * How the activity shows on Android, as an ongoing notification. Required there: without
@@ -328,7 +339,8 @@ export interface StartActivityResult {
   /** Unique activity identifier */
   activityId: string;
   /**
-   * Android 16+: whether the notification has what a Live Update needs. The user may still
+   * Android 16+: whether the notification has what a Live Update needs (the system can only
+   * promote it from Android 16 QPR1, API 36.1). The user may still
    * have turned promotion off (see `canPostPromoted`). Absent on iOS and older Android.
    *
    * @since 1.4.0
@@ -362,9 +374,9 @@ export interface UpdateActivityOptions {
   data: Record<string, unknown>;
   /** Optional alert to show with update (iOS only) */
   alertConfiguration?: ActivityAlertConfiguration;
-  /** Updated stale date */
+  /** Updated stale date (iOS only) */
   staleDate?: number;
-  /** Updated relevance score */
+  /** Updated relevance score (iOS only) */
   relevanceScore?: number;
 }
 
@@ -662,7 +674,8 @@ export interface CapgoLiveActivitiesPlugin {
   /**
    * Start a new Live Activity with the specified layout and data.
    * On Android, pass `android` too: the activity shows as an ongoing notification, promoted to
-   * a Live Update on Android 16+ (it asks for the notification permission first, on Android 13+).
+   * a Live Update from Android 16 QPR1 (it asks for the notification permission first, on
+   * Android 13+).
    *
    * @param options - Options for starting the activity
    * @returns Promise that resolves with the activity ID
@@ -690,7 +703,7 @@ export interface CapgoLiveActivitiesPlugin {
    *     compactTrailing: { type: 'text', content: '{{eta}}' },
    *     minimal: { type: 'image', source: 'sfSymbol', value: 'box.truck' }
    *   },
-   *   // Android: an ongoing notification (a Live Update on Android 16+)
+   *   // Android: an ongoing notification (a Live Update from Android 16 QPR1)
    *   android: {
    *     title: 'Order #{{orderNumber}}',
    *     text: '{{status}}',
