@@ -248,23 +248,89 @@ export interface LiveActivitiesBehavior {
 }
 
 /**
+ * A timer Android draws by itself, with no update every second.
+ *
+ * @since 1.4.0
+ */
+export interface AndroidActivityTimer {
+  /**
+   * The date, in milliseconds since the epoch, or the key in `data` of one (as the iOS
+   * `timer` element's `targetDate`).
+   */
+  targetDate: string | number;
+  /** Count down to a future date. By default the timer counts up from a past one. */
+  countDown?: boolean;
+}
+
+/**
+ * How an activity shows on Android: as an ongoing notification. From Android 16 QPR1
+ * (API 36.1), where apps can request it, the system can promote it to a Live Update (a chip
+ * in the status bar, at the top of the lock screen and of the notification shade), unless the
+ * user turned that off for the app.
+ *
+ * Text takes `{{key}}` placeholders from the activity's `data`, as the iOS layout does, so
+ * `updateActivity` updates it.
+ *
+ * @since 1.4.0
+ */
+export interface AndroidActivityLayout {
+  /** The notification's title, e.g. `'Order #{{orderNumber}}'` */
+  title: string;
+  /** The text under the title */
+  text?: string;
+  /**
+   * A timer counting up from (or down to) a date, next to the title, and in the chip when
+   * there is no `chipText`
+   */
+  timer?: AndroidActivityTimer;
+  /**
+   * Android 16 QPR1+ (API 36.1): a few characters for the status bar chip, e.g. `'{{eta}}'`.
+   * Without it the chip shows the timer, or only the icon.
+   */
+  chipText?: string;
+  /**
+   * The name of a drawable or mipmap resource of the app for the small icon, e.g.
+   * `'ic_stat_delivery'` or `'mipmap/ic_notification'`. Defaults to the app's icon, which
+   * Android may draw as a plain shape: prefer a white-on-transparent icon.
+   */
+  smallIcon?: string;
+  /**
+   * On the lock screen: `'public'` shows the activity in full, as an iOS Live Activity does;
+   * `'private'` shows only that there is one, until the device is unlocked.
+   *
+   * @default 'public'
+   */
+  visibility?: 'public' | 'private';
+}
+
+/**
  * Options for starting a Live Activity
  *
  * @since 1.0.0
  */
 export interface StartActivityOptions {
-  /** Main activity layout (lock screen widget) */
+  /**
+   * Main activity layout (lock screen widget). Shown on iOS only (Android shows `android`), but
+   * still required, so one call starts the activity on both platforms.
+   */
   layout: ActivityLayout;
-  /** Dynamic Island layout configuration */
+  /** Dynamic Island layout configuration. Shown on iOS only, but still required, as `layout` is. */
   dynamicIslandLayout: DynamicIslandLayout;
   /** Activity behavior settings */
   behavior?: LiveActivitiesBehavior;
   /** Dynamic data for the activity */
   data: Record<string, unknown>;
-  /** Stale date timestamp (activity becomes stale after this) */
+  /** Stale date timestamp (activity becomes stale after this) (iOS only) */
   staleDate?: number;
-  /** Relevance score for activity ordering (0-100) */
+  /** Relevance score for activity ordering (0-100) (iOS only) */
   relevanceScore?: number;
+  /**
+   * How the activity shows on Android, as an ongoing notification. Required there: without
+   * it, `startActivity` rejects on Android. Ignored on iOS.
+   *
+   * @since 1.4.0
+   */
+  android?: AndroidActivityLayout;
 }
 
 /**
@@ -275,6 +341,14 @@ export interface StartActivityOptions {
 export interface StartActivityResult {
   /** Unique activity identifier */
   activityId: string;
+  /**
+   * Android 16+: whether the notification has what a Live Update needs (the system can only
+   * promote it from Android 16 QPR1, API 36.1). The user may still
+   * have turned promotion off (see `canPostPromoted`). Absent on iOS and older Android.
+   *
+   * @since 1.4.0
+   */
+  promotable?: boolean;
 }
 
 /**
@@ -301,11 +375,11 @@ export interface UpdateActivityOptions {
   activityId: string;
   /** Updated data */
   data: Record<string, unknown>;
-  /** Optional alert to show with update */
+  /** Optional alert to show with update (iOS only) */
   alertConfiguration?: ActivityAlertConfiguration;
-  /** Updated stale date */
+  /** Updated stale date (iOS only) */
   staleDate?: number;
-  /** Updated relevance score */
+  /** Updated relevance score (iOS only) */
   relevanceScore?: number;
 }
 
@@ -443,6 +517,13 @@ export interface AreActivitiesSupportedResult {
   supported: boolean;
   /** Reason if not supported */
   reason?: string;
+  /**
+   * Android 16+: whether the user lets the app's notifications be promoted to Live Updates.
+   * When false, activities still show, as ordinary ongoing notifications.
+   *
+   * @since 1.4.0
+   */
+  canPostPromoted?: boolean;
 }
 
 // ============================================================================
@@ -576,7 +657,8 @@ export interface GetTimerStateOptions {
 export interface CapgoLiveActivitiesPlugin {
   /**
    * Check if Live Activities are supported on this device.
-   * Requires iOS 16.1+ and device support.
+   * Requires iOS 16.1+ and device support. On Android, an activity is an ongoing
+   * notification: supported unless the app's notifications are turned off.
    *
    * @returns Promise that resolves with support status
    * @since 1.0.0
@@ -594,6 +676,9 @@ export interface CapgoLiveActivitiesPlugin {
 
   /**
    * Start a new Live Activity with the specified layout and data.
+   * On Android, pass `android` too: the activity shows as an ongoing notification, promoted to
+   * a Live Update from Android 16 QPR1 (it asks for the notification permission first, on
+   * Android 13+).
    *
    * @param options - Options for starting the activity
    * @returns Promise that resolves with the activity ID
@@ -620,6 +705,12 @@ export interface CapgoLiveActivitiesPlugin {
    *     compactLeading: { type: 'image', source: 'sfSymbol', value: 'box.truck' },
    *     compactTrailing: { type: 'text', content: '{{eta}}' },
    *     minimal: { type: 'image', source: 'sfSymbol', value: 'box.truck' }
+   *   },
+   *   // Android: an ongoing notification (a Live Update from Android 16 QPR1)
+   *   android: {
+   *     title: 'Order #{{orderNumber}}',
+   *     text: '{{status}}',
+   *     chipText: '{{eta}}'
    *   },
    *   data: {
    *     orderNumber: '12345',

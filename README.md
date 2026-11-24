@@ -35,7 +35,7 @@ We build, improve and fix our plugins with heavy use of AI, so issues usually ge
 - **Images**: `saveImage()`, `listImages()`, `removeImage()` and `cleanupImages()` share images through your App Group.
 - **Timer sequences**: `startTimerSequence()` with pause, resume, skip, previous and `timerSequenceEvent` for workouts and sports.
 - **Support check**: `areActivitiesSupported()` before you start.
-- **Platforms**: iOS and Android. Live Activities need iOS 16.1 or later. On Android, timer sequences show as a foreground notification. Web is not available.
+- **Platforms**: iOS and Android. Live Activities need iOS 16.1 or later. On Android, an activity started with an `android` layout shows as an ongoing notification, which Android can promote to a Live Update from Android 16 QPR1 (a status bar chip, the top of the lock screen); timer sequences show as a foreground notification. Web is not available.
 
 ## Why Capacitor Live Activities?
 
@@ -482,7 +482,8 @@ areActivitiesSupported() => Promise<AreActivitiesSupportedResult>
 ```
 
 Check if Live Activities are supported on this device.
-Requires iOS 16.1+ and device support.
+Requires iOS 16.1+ and device support. On Android, an activity is an ongoing
+notification: supported unless the app's notifications are turned off.
 
 **Returns:** <code>Promise&lt;<a href="#areactivitiessupportedresult">AreActivitiesSupportedResult</a>&gt;</code>
 
@@ -498,6 +499,9 @@ startActivity(options: StartActivityOptions) => Promise<StartActivityResult>
 ```
 
 Start a new Live Activity with the specified layout and data.
+On Android, pass `android` too: the activity shows as an ongoing notification, promoted to
+a Live Update from Android 16 QPR1 (it asks for the notification permission first, on
+Android 13+).
 
 | Param         | Type                                                                  | Description                         |
 | ------------- | --------------------------------------------------------------------- | ----------------------------------- |
@@ -794,33 +798,36 @@ Events include: stepChange, complete, tick, paused, resumed, stopped, loopComple
 
 Result of checking if activities are supported
 
-| Prop            | Type                 | Description                                          |
-| --------------- | -------------------- | ---------------------------------------------------- |
-| **`supported`** | <code>boolean</code> | Whether Live Activities are supported on this device |
-| **`reason`**    | <code>string</code>  | Reason if not supported                              |
+| Prop                  | Type                 | Description                                                                                                                                                   | Since |
+| --------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| **`supported`**       | <code>boolean</code> | Whether Live Activities are supported on this device                                                                                                          |       |
+| **`reason`**          | <code>string</code>  | Reason if not supported                                                                                                                                       |       |
+| **`canPostPromoted`** | <code>boolean</code> | Android 16+: whether the user lets the app's notifications be promoted to Live Updates. When false, activities still show, as ordinary ongoing notifications. | 1.4.0 |
 
 
 #### StartActivityResult
 
 Result of starting an activity
 
-| Prop             | Type                | Description                |
-| ---------------- | ------------------- | -------------------------- |
-| **`activityId`** | <code>string</code> | Unique activity identifier |
+| Prop             | Type                 | Description                                                                                                                                                                                                                                | Since |
+| ---------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
+| **`activityId`** | <code>string</code>  | Unique activity identifier                                                                                                                                                                                                                 |       |
+| **`promotable`** | <code>boolean</code> | Android 16+: whether the notification has what a Live Update needs (the system can only promote it from Android 16 QPR1, API 36.1). The user may still have turned promotion off (see `canPostPromoted`). Absent on iOS and older Android. | 1.4.0 |
 
 
 #### StartActivityOptions
 
 Options for starting a Live Activity
 
-| Prop                      | Type                                                                      | Description                                              |
-| ------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------- |
-| **`layout`**              | <code><a href="#activitylayout">ActivityLayout</a></code>                 | Main activity layout (lock screen widget)                |
-| **`dynamicIslandLayout`** | <code><a href="#dynamicislandlayout">DynamicIslandLayout</a></code>       | Dynamic Island layout configuration                      |
-| **`behavior`**            | <code><a href="#liveactivitiesbehavior">LiveActivitiesBehavior</a></code> | Activity behavior settings                               |
-| **`data`**                | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code>          | Dynamic data for the activity                            |
-| **`staleDate`**           | <code>number</code>                                                       | Stale date timestamp (activity becomes stale after this) |
-| **`relevanceScore`**      | <code>number</code>                                                       | Relevance score for activity ordering (0-100)            |
+| Prop                      | Type                                                                      | Description                                                                                                                                                    | Since |
+| ------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| **`layout`**              | <code><a href="#activitylayout">ActivityLayout</a></code>                 | Main activity layout (lock screen widget). Shown on iOS only (Android shows `android`), but still required, so one call starts the activity on both platforms. |       |
+| **`dynamicIslandLayout`** | <code><a href="#dynamicislandlayout">DynamicIslandLayout</a></code>       | Dynamic Island layout configuration. Shown on iOS only, but still required, as `layout` is.                                                                    |       |
+| **`behavior`**            | <code><a href="#liveactivitiesbehavior">LiveActivitiesBehavior</a></code> | Activity behavior settings                                                                                                                                     |       |
+| **`data`**                | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code>          | Dynamic data for the activity                                                                                                                                  |       |
+| **`staleDate`**           | <code>number</code>                                                       | Stale date timestamp (activity becomes stale after this) (iOS only)                                                                                            |       |
+| **`relevanceScore`**      | <code>number</code>                                                       | Relevance score for activity ordering (0-100) (iOS only)                                                                                                       |       |
+| **`android`**             | <code><a href="#androidactivitylayout">AndroidActivityLayout</a></code>   | How the activity shows on Android, as an ongoing notification. Required there: without it, `startActivity` rejects on Android. Ignored on iOS.                 | 1.4.0 |
 
 
 #### LayoutElementContainer
@@ -976,17 +983,47 @@ Live Activity behavior configuration
 | **`keyLineTint`**                 | <code><a href="#colorstring">ColorString</a></code> | Key line tint color            |
 
 
+#### AndroidActivityLayout
+
+How an activity shows on Android: as an ongoing notification. From Android 16 QPR1
+(API 36.1), where apps can request it, the system can promote it to a Live Update (a chip
+in the status bar, at the top of the lock screen and of the notification shade), unless the
+user turned that off for the app.
+
+Text takes `{{key}}` placeholders from the activity's `data`, as the iOS layout does, so
+`updateActivity` updates it.
+
+| Prop             | Type                                                                  | Description                                                                                                                                                                                                                                | Default               |
+| ---------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
+| **`title`**      | <code>string</code>                                                   | The notification's title, e.g. `'Order #{{orderNumber}}'`                                                                                                                                                                                  |                       |
+| **`text`**       | <code>string</code>                                                   | The text under the title                                                                                                                                                                                                                   |                       |
+| **`timer`**      | <code><a href="#androidactivitytimer">AndroidActivityTimer</a></code> | A timer counting up from (or down to) a date, next to the title, and in the chip when there is no `chipText`                                                                                                                               |                       |
+| **`chipText`**   | <code>string</code>                                                   | Android 16 QPR1+ (API 36.1): a few characters for the status bar chip, e.g. `'{{eta}}'`. Without it the chip shows the timer, or only the icon.                                                                                            |                       |
+| **`smallIcon`**  | <code>string</code>                                                   | The name of a drawable or mipmap resource of the app for the small icon, e.g. `'ic_stat_delivery'` or `'mipmap/ic_notification'`. Defaults to the app's icon, which Android may draw as a plain shape: prefer a white-on-transparent icon. |                       |
+| **`visibility`** | <code>'public' \| 'private'</code>                                    | On the lock screen: `'public'` shows the activity in full, as an iOS Live Activity does; `'private'` shows only that there is one, until the device is unlocked.                                                                           | <code>'public'</code> |
+
+
+#### AndroidActivityTimer
+
+A timer Android draws by itself, with no update every second.
+
+| Prop             | Type                          | Description                                                                                                         |
+| ---------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **`targetDate`** | <code>string \| number</code> | The date, in milliseconds since the epoch, or the key in `data` of one (as the iOS `timer` element's `targetDate`). |
+| **`countDown`**  | <code>boolean</code>          | Count down to a future date. By default the timer counts up from a past one.                                        |
+
+
 #### UpdateActivityOptions
 
 Options for updating a Live Activity
 
-| Prop                     | Type                                                                              | Description                        |
-| ------------------------ | --------------------------------------------------------------------------------- | ---------------------------------- |
-| **`activityId`**         | <code>string</code>                                                               | Activity ID to update              |
-| **`data`**               | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code>                  | Updated data                       |
-| **`alertConfiguration`** | <code><a href="#activityalertconfiguration">ActivityAlertConfiguration</a></code> | Optional alert to show with update |
-| **`staleDate`**          | <code>number</code>                                                               | Updated stale date                 |
-| **`relevanceScore`**     | <code>number</code>                                                               | Updated relevance score            |
+| Prop                     | Type                                                                              | Description                                   |
+| ------------------------ | --------------------------------------------------------------------------------- | --------------------------------------------- |
+| **`activityId`**         | <code>string</code>                                                               | Activity ID to update                         |
+| **`data`**               | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code>                  | Updated data                                  |
+| **`alertConfiguration`** | <code><a href="#activityalertconfiguration">ActivityAlertConfiguration</a></code> | Optional alert to show with update (iOS only) |
+| **`staleDate`**          | <code>number</code>                                                               | Updated stale date (iOS only)                 |
+| **`relevanceScore`**     | <code>number</code>                                                               | Updated relevance score (iOS only)            |
 
 
 #### ActivityAlertConfiguration

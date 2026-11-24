@@ -7,16 +7,19 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
+import android.service.notification.StatusBarNotification;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -30,7 +33,10 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -38,8 +44,10 @@ import org.json.JSONObject;
 
 /**
  * Android implementation for Live Activities plugin.
- * Live Activities are an iOS-only feature, but timer sequences work on Android
- * using foreground notifications.
+ * A Live Activity started with an {@code android} layout is an ongoing notification, which
+ * Android can promote to a Live Update from Android 16 QPR1 (a status bar chip, the top of the
+ * lock screen).
+ * Timer sequences work on Android using foreground notifications.
  */
 @CapacitorPlugin(
     name = "CapgoLiveActivities",
@@ -51,6 +59,21 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
 
     private static final String CHANNEL_ID = "timer_sequence_channel";
     private static final int NOTIFICATION_ID = 1001;
+
+    // Live Activities as notifications
+    private static final String ACTIVITY_CHANNEL_ID = "live_activities_channel";
+    private static final String ACTIVITY_PREFS = "CapgoLiveActivities";
+    private static final String ACTIVITY_KEY_PREFIX = "activity:";
+    private static final String NEXT_NOTIFICATION_ID_KEY = "nextNotificationId";
+    // timer sequences use 1001
+    private static final int FIRST_ACTIVITY_NOTIFICATION_ID = 2000;
+    // Notification.EXTRA_REQUEST_PROMOTED_ONGOING: public from API 36.1 (Android 16 QPR1), where
+    // apps can request promotion; ignored before
+    private static final String EXTRA_REQUEST_PROMOTED_ONGOING = "android.requestPromotedOngoing";
+    // Notification.EXTRA_CHRONOMETER_COUNT_DOWN (API 24)
+    private static final String EXTRA_CHRONOMETER_COUNT_DOWN = "android.chronometerCountDown";
+    // A notification just posted may not be listed as shown yet: not taken for dismissed before
+    private static final long JUST_POSTED_MS = 5000;
     private final String pluginVersion = "1.3.3";
 
     private final Map<String, TimerSequenceInfo> timerSequences = new HashMap<>();
@@ -77,6 +100,28 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
     public void load() {
         super.load();
         createNotificationChannel();
+        createActivityChannel();
+    }
+
+    private void createActivityChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Default importance (a Live Update needs more than "min"), but silent: an activity
+            // changes often and never rings.
+            NotificationChannel channel = new NotificationChannel(
+                ACTIVITY_CHANNEL_ID,
+                "Live Activities",
+                NotificationManager.IMPORTANCE_DEFAULT
+            );
+            channel.setDescription("Ongoing activities, such as a timer or a delivery");
+            channel.setSound(null, null);
+            channel.enableVibration(false);
+            channel.setShowBadge(false);
+
+            NotificationManager notificationManager = getContext().getSystemService(NotificationManager.class);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
     }
 
     private void createNotificationChannel() {
@@ -96,30 +141,168 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
     @PluginMethod
     public void areActivitiesSupported(PluginCall call) {
         JSObject ret = new JSObject();
-        ret.put("supported", false);
-        ret.put("reason", "Live Activities are only available on iOS. Timer sequences work on Android via notifications.");
+        boolean enabled = NotificationManagerCompat.from(getContext()).areNotificationsEnabled();
+        // Not granted yet (Android 13+): startActivity asks for it
+        boolean canAsk =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && getPermissionState(NOTIFICATIONS) != PermissionState.DENIED;
+
+        ret.put("supported", enabled || canAsk);
+        if (!enabled && !canAsk) {
+            ret.put("reason", "Notifications are turned off for this app");
+        }
+
+        if (Build.VERSION.SDK_INT >= 36) {
+            NotificationManager notificationManager = getContext().getSystemService(NotificationManager.class);
+            ret.put("canPostPromoted", notificationManager != null && notificationManager.canPostPromotedNotifications());
+        }
+
         call.resolve(ret);
     }
 
     @PluginMethod
     public void startActivity(PluginCall call) {
-        call.reject("Live Activities are only available on iOS. Use startTimerSequence for workout timers on Android.");
+        if (call.getObject("android") == null) {
+            call.reject("On Android, a Live Activity needs an `android` layout (an ongoing notification)");
+            return;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && getPermissionState(NOTIFICATIONS) != PermissionState.GRANTED) {
+            requestPermissionForAlias(NOTIFICATIONS, call, "activityNotificationsPermissionCallback");
+            return;
+        }
+
+        startActivityImpl(call);
+    }
+
+    @PermissionCallback
+    private void activityNotificationsPermissionCallback(PluginCall call) {
+        if (getPermissionState(NOTIFICATIONS) != PermissionState.GRANTED) {
+            call.reject("Notification permission was not granted");
+            return;
+        }
+
+        startActivityImpl(call);
+    }
+
+    private void startActivityImpl(PluginCall call) {
+        try {
+            String activityId = UUID.randomUUID().toString();
+            JSONObject activity = new JSONObject();
+
+            activity.put("notificationId", nextActivityNotificationId());
+            activity.put("startDate", System.currentTimeMillis());
+            activity.put("android", call.getObject("android"));
+            activity.put("data", objectOrEmpty(call.getObject("data")));
+
+            JSObject behavior = call.getObject("behavior");
+            if (behavior != null && behavior.has("widgetUrl")) {
+                activity.put("widgetUrl", behavior.getString("widgetUrl"));
+            }
+
+            Boolean promotable = postActivity(activity, null);
+            saveActivity(activityId, activity);
+
+            JSObject ret = new JSObject();
+            ret.put("activityId", activityId);
+            ret.put("promotable", promotable);
+            call.resolve(ret);
+        } catch (JSONException e) {
+            call.reject("Invalid activity options: " + e.getMessage());
+        }
     }
 
     @PluginMethod
     public void updateActivity(PluginCall call) {
-        call.reject("Live Activities are only available on iOS");
+        String activityId = call.getString("activityId");
+        JSONObject activity = activityId == null ? null : loadActivity(activityId);
+
+        if (activity == null) {
+            call.reject("Activity not found");
+            return;
+        }
+
+        try {
+            // As on iOS, the data replaces the previous data
+            activity.put("data", objectOrEmpty(call.getObject("data")));
+            postActivity(activity, null);
+            saveActivity(activityId, activity);
+            call.resolve();
+        } catch (JSONException e) {
+            call.reject("Invalid activity data: " + e.getMessage());
+        }
     }
 
     @PluginMethod
     public void endActivity(PluginCall call) {
-        call.reject("Live Activities are only available on iOS");
+        String activityId = call.getString("activityId");
+        JSONObject activity = activityId == null ? null : loadActivity(activityId);
+
+        if (activity == null) {
+            call.reject("Activity not found");
+            return;
+        }
+
+        try {
+            JSObject data = call.getObject("data");
+            if (data != null) {
+                activity.put("data", data);
+            }
+
+            long dismissAfter = call.getLong("dismissAfter", 0L);
+            long remaining = dismissAfter - System.currentTimeMillis();
+
+            if ("after".equals(call.getString("dismissalPolicy")) && remaining > 0) {
+                // the final state stays, no longer ongoing, until dismissAfter
+                postActivity(activity, remaining);
+            } else {
+                NotificationManagerCompat.from(getContext()).cancel(activity.getInt("notificationId"));
+            }
+
+            removeActivity(activityId);
+            call.resolve();
+        } catch (JSONException e) {
+            call.reject("Invalid activity data: " + e.getMessage());
+        }
     }
 
     @PluginMethod
     public void getAllActivities(PluginCall call) {
+        // While the app's notifications (or the activities' channel) are blocked, none is shown:
+        // that says nothing of whether the user dismissed one
+        Set<Integer> shown = activityNotificationsBlocked() ? null : shownNotificationIds();
+        JSArray activities = new JSArray();
+        Map<String, ?> stored = activityPrefs().getAll();
+
+        for (Map.Entry<String, ?> entry : stored.entrySet()) {
+            if (!entry.getKey().startsWith(ACTIVITY_KEY_PREFIX)) {
+                continue;
+            }
+
+            String activityId = entry.getKey().substring(ACTIVITY_KEY_PREFIX.length());
+
+            try {
+                JSONObject activity = new JSONObject(String.valueOf(entry.getValue()));
+                // Not shown: the user dismissed it (Android 14+ lets them)
+                boolean justPosted = System.currentTimeMillis() - activity.optLong("postedAt", 0) < JUST_POSTED_MS;
+                boolean active = shown == null || justPosted || shown.contains(activity.getInt("notificationId"));
+
+                JSObject info = new JSObject();
+                info.put("activityId", activityId);
+                info.put("state", active ? "active" : "dismissed");
+                info.put("startDate", activity.optLong("startDate", 0));
+                info.put("data", JSObject.fromJSONObject(activity.optJSONObject("data")));
+                activities.put(info);
+
+                if (!active) {
+                    removeActivity(activityId);
+                }
+            } catch (JSONException e) {
+                removeActivity(activityId);
+            }
+        }
+
         JSObject ret = new JSObject();
-        ret.put("activities", new JSArray());
+        ret.put("activities", activities);
         call.resolve(ret);
     }
 
@@ -636,6 +819,219 @@ public class CapgoLiveActivitiesPlugin extends Plugin {
         int mins = seconds / 60;
         int secs = seconds % 60;
         return String.format("%d:%02d", mins, secs);
+    }
+
+    // ============================================================================
+    // Live Activities as notifications
+    // ============================================================================
+
+    /**
+     * Shows (or updates) an activity's notification. With {@code timeoutMs}, the activity has
+     * ended: its final state shows, no longer ongoing, for that long.
+     *
+     * @return whether Android 16+ considers it promotable to a Live Update (null before 16)
+     */
+    private Boolean postActivity(JSONObject activity, Long timeoutMs) throws JSONException {
+        JSONObject android = activity.getJSONObject("android");
+        Map<String, Object> data = toMap(activity.optJSONObject("data"));
+        boolean ended = timeoutMs != null;
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext(), ACTIVITY_CHANNEL_ID)
+            .setSmallIcon(smallIcon(android.optString("smallIcon", null)))
+            .setContentTitle(ActivityTemplates.fill(android.optString("title", ""), data))
+            .setOngoing(!ended)
+            .setOnlyAlertOnce(true)
+            .setSilent(true)
+            // as on iOS, an activity shows in full on the lock screen, unless the app says otherwise
+            .setVisibility(
+                "private".equals(android.optString("visibility"))
+                    ? NotificationCompat.VISIBILITY_PRIVATE
+                    : NotificationCompat.VISIBILITY_PUBLIC
+            )
+            .setContentIntent(activityTapIntent(activity));
+
+        String text = ActivityTemplates.fill(android.optString("text", ""), data);
+        if (!text.isEmpty()) {
+            builder.setContentText(text);
+        }
+
+        Bundle extras = new Bundle();
+        JSONObject timer = android.optJSONObject("timer");
+        long timerDate = timer == null || ended ? 0 : ActivityTemplates.timestamp(timer.opt("targetDate"), data);
+
+        if (timerDate > 0) {
+            // Android's own chronometer: it counts by itself, up from a past date (or down to a
+            // future one), with no update every second
+            builder.setWhen(timerDate).setShowWhen(true).setUsesChronometer(true);
+            if (timer.optBoolean("countDown", false)) {
+                extras.putBoolean(EXTRA_CHRONOMETER_COUNT_DOWN, true);
+            }
+        } else {
+            builder.setShowWhen(false);
+        }
+
+        if (ended) {
+            builder.setTimeoutAfter(timeoutMs).setAutoCancel(true);
+        } else {
+            extras.putBoolean(EXTRA_REQUEST_PROMOTED_ONGOING, true);
+        }
+        builder.addExtras(extras);
+
+        Notification notification = builder.build();
+        Boolean promotable = null;
+
+        if (Build.VERSION.SDK_INT >= 36) {
+            String chipText = ActivityTemplates.fill(android.optString("chipText", ""), data);
+            if (!chipText.isEmpty() && !ended) {
+                notification = Notification.Builder.recoverBuilder(getContext(), notification).setShortCriticalText(chipText).build();
+            }
+            promotable = !ended && notification.hasPromotableCharacteristics();
+        }
+
+        int notificationId = activity.getInt("notificationId");
+        activity.put("postedAt", System.currentTimeMillis());
+        showActivityNotification(notificationId, notification);
+
+        // setTimeoutAfter only exists from Android 8: before, cancel it here (while the app runs)
+        if (ended && Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            handler.postDelayed(() -> NotificationManagerCompat.from(getContext()).cancel(notificationId), timeoutMs);
+        }
+
+        return promotable;
+    }
+
+    private void showActivityNotification(int notificationId, Notification notification) {
+        if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return;
+        }
+
+        NotificationManagerCompat.from(getContext()).notify(notificationId, notification);
+    }
+
+    // A drawable or mipmap of the app, by name; the app's icon without one
+    private int smallIcon(String name) {
+        Context context = getContext();
+
+        if (name != null && !name.isEmpty()) {
+            String resourceName = name.contains("/") ? name.substring(name.indexOf('/') + 1) : name;
+
+            for (String type : new String[] { "drawable", "mipmap" }) {
+                int id = context.getResources().getIdentifier(resourceName, type, context.getPackageName());
+                if (id != 0) {
+                    return id;
+                }
+            }
+        }
+
+        return context.getApplicationInfo().icon;
+    }
+
+    // Opens behavior.widgetUrl in the app, as on iOS; or just the app
+    private PendingIntent activityTapIntent(JSONObject activity) throws JSONException {
+        Context context = getContext();
+        String widgetUrl = activity.optString("widgetUrl", "");
+        Intent intent;
+
+        if (!widgetUrl.isEmpty()) {
+            intent = new Intent(Intent.ACTION_VIEW, Uri.parse(widgetUrl)).setPackage(context.getPackageName());
+        } else {
+            intent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+            if (intent == null) {
+                return null;
+            }
+        }
+
+        return PendingIntent.getActivity(
+            context,
+            activity.getInt("notificationId"),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+    }
+
+    private boolean activityNotificationsBlocked() {
+        NotificationManagerCompat notifications = NotificationManagerCompat.from(getContext());
+        if (!notifications.areNotificationsEnabled()) {
+            return true;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = getContext()
+                .getSystemService(NotificationManager.class)
+                .getNotificationChannel(ACTIVITY_CHANNEL_ID);
+            return channel != null && channel.getImportance() == NotificationManager.IMPORTANCE_NONE;
+        }
+
+        return false;
+    }
+
+    // The ids of the app's notifications on screen now; null where Android cannot tell
+    private Set<Integer> shownNotificationIds() {
+        NotificationManager notificationManager = getContext().getSystemService(NotificationManager.class);
+        if (notificationManager == null) {
+            return null;
+        }
+
+        Set<Integer> ids = new HashSet<>();
+        for (StatusBarNotification notification : notificationManager.getActiveNotifications()) {
+            ids.add(notification.getId());
+        }
+        return ids;
+    }
+
+    // Activities are kept across app restarts: their notifications outlive the app's process
+    private SharedPreferences activityPrefs() {
+        return getContext().getSharedPreferences(ACTIVITY_PREFS, Context.MODE_PRIVATE);
+    }
+
+    private JSONObject loadActivity(String activityId) {
+        String json = activityPrefs().getString(ACTIVITY_KEY_PREFIX + activityId, null);
+        if (json == null) {
+            return null;
+        }
+
+        try {
+            return new JSONObject(json);
+        } catch (JSONException e) {
+            return null;
+        }
+    }
+
+    private void saveActivity(String activityId, JSONObject activity) {
+        activityPrefs().edit().putString(ACTIVITY_KEY_PREFIX + activityId, activity.toString()).apply();
+    }
+
+    private void removeActivity(String activityId) {
+        activityPrefs().edit().remove(ACTIVITY_KEY_PREFIX + activityId).apply();
+    }
+
+    private synchronized int nextActivityNotificationId() {
+        SharedPreferences prefs = activityPrefs();
+        int id = prefs.getInt(NEXT_NOTIFICATION_ID_KEY, FIRST_ACTIVITY_NOTIFICATION_ID);
+        prefs.edit().putInt(NEXT_NOTIFICATION_ID_KEY, id + 1).apply();
+        return id;
+    }
+
+    private static JSONObject objectOrEmpty(JSONObject object) {
+        return object == null ? new JSONObject() : object;
+    }
+
+    private static Map<String, Object> toMap(JSONObject object) {
+        Map<String, Object> map = new HashMap<>();
+        if (object == null) {
+            return map;
+        }
+
+        Iterator<String> keys = object.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            Object value = object.opt(key);
+            map.put(key, value == JSONObject.NULL ? null : value);
+        }
+        return map;
     }
 
     // ============================================================================
