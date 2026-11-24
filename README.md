@@ -819,15 +819,15 @@ Result of starting an activity
 
 Options for starting a Live Activity
 
-| Prop                      | Type                                                                      | Description                                                                                                                                    | Since |
-| ------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| **`layout`**              | <code><a href="#activitylayout">ActivityLayout</a></code>                 | Main activity layout (lock screen widget). iOS only: Android uses `android`.                                                                   |       |
-| **`dynamicIslandLayout`** | <code><a href="#dynamicislandlayout">DynamicIslandLayout</a></code>       | Dynamic Island layout configuration (iOS only)                                                                                                 |       |
-| **`behavior`**            | <code><a href="#liveactivitiesbehavior">LiveActivitiesBehavior</a></code> | Activity behavior settings                                                                                                                     |       |
-| **`data`**                | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code>          | Dynamic data for the activity                                                                                                                  |       |
-| **`staleDate`**           | <code>number</code>                                                       | Stale date timestamp (activity becomes stale after this) (iOS only)                                                                            |       |
-| **`relevanceScore`**      | <code>number</code>                                                       | Relevance score for activity ordering (0-100) (iOS only)                                                                                       |       |
-| **`android`**             | <code><a href="#androidactivitylayout">AndroidActivityLayout</a></code>   | How the activity shows on Android, as an ongoing notification. Required there: without it, `startActivity` rejects on Android. Ignored on iOS. | 1.4.0 |
+| Prop                      | Type                                                                      | Description                                                                                                                                                    | Since |
+| ------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| **`layout`**              | <code><a href="#activitylayout">ActivityLayout</a></code>                 | Main activity layout (lock screen widget). Shown on iOS only (Android shows `android`), but still required, so one call starts the activity on both platforms. |       |
+| **`dynamicIslandLayout`** | <code><a href="#dynamicislandlayout">DynamicIslandLayout</a></code>       | Dynamic Island layout configuration. Shown on iOS only, but still required, as `layout` is.                                                                    |       |
+| **`behavior`**            | <code><a href="#liveactivitiesbehavior">LiveActivitiesBehavior</a></code> | Activity behavior settings                                                                                                                                     |       |
+| **`data`**                | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code>          | Dynamic data for the activity                                                                                                                                  |       |
+| **`staleDate`**           | <code>number</code>                                                       | Stale date timestamp (activity becomes stale after this) (iOS only)                                                                                            |       |
+| **`relevanceScore`**      | <code>number</code>                                                       | Relevance score for activity ordering (0-100) (iOS only)                                                                                                       |       |
+| **`android`**             | <code><a href="#androidactivitylayout">AndroidActivityLayout</a></code>   | How the activity shows on Android, as an ongoing notification. Required there: without it, `startActivity` rejects on Android. Ignored on iOS.                 | 1.4.0 |
 
 
 #### LayoutElementContainer

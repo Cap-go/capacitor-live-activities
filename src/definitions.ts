@@ -309,9 +309,12 @@ export interface AndroidActivityLayout {
  * @since 1.0.0
  */
 export interface StartActivityOptions {
-  /** Main activity layout (lock screen widget). iOS only: Android uses `android`. */
+  /**
+   * Main activity layout (lock screen widget). Shown on iOS only (Android shows `android`), but
+   * still required, so one call starts the activity on both platforms.
+   */
   layout: ActivityLayout;
-  /** Dynamic Island layout configuration (iOS only) */
+  /** Dynamic Island layout configuration. Shown on iOS only, but still required, as `layout` is. */
   dynamicIslandLayout: DynamicIslandLayout;
   /** Activity behavior settings */
   behavior?: LiveActivitiesBehavior;
